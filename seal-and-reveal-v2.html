@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b10">
+<title>Seal &amp; Reveal · Fungo Labs community simulator</title>
+<meta name="description" content="Just for fun: mint a sealed NFT, look inside, publish it or never, sell it blind and duel in the dark. An unofficial community simulator of Fungo Labs encrypted NFTs.">
+<meta property="og:title" content="Seal &amp; Reveal · unofficial Fungo Labs simulator">
+<meta property="og:description" content="Just for fun: try sealed, encrypted NFTs with your own hands.">
+<meta property="og:type" content="website">
+<style>
+:root{--bg:#0b0b10;--panel:#12121a;--panel2:#171723;--line:#25253a;--text:#ecebf5;--muted:#8d8ca6;--violet:#8b7bff;--violet2:#6c5ce7;--gold:#f4c35a;--mint:#59e0b4;--red:#ff6b8a;--r:18px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(1200px 700px at 70% -10%,#1b1740 0,transparent 60%),radial-gradient(900px 600px at -10% 25%,#14223a 0,transparent 55%),var(--bg);color:var(--text);font:16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+header,main,footer{position:relative;z-index:1}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.muted{color:var(--muted)}.small{font-size:14px}.tiny{font-size:12.5px}
+.fun{position:relative;z-index:21;text-align:center;font-size:13px;padding:8px 16px;background:#8b7bff1f;border-bottom:1px solid #8b7bff40;color:var(--text)}
+.fun b{color:var(--gold)}
+.nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:#0b0b10b8;border-bottom:1px solid #ffffff0d}
+.navin{display:flex;align-items:center;gap:18px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;white-space:nowrap}
+.brand small{color:var(--muted);font-size:13px}
+.navin nav{display:flex;gap:4px;margin-left:auto}
+.navin nav a{color:var(--muted);text-decoration:none;font-size:14px;padding:8px 10px;border-radius:10px}
+.navin nav a:hover{color:var(--text);background:#ffffff0a}
+@media(max-width:900px){.navin nav{display:none}.navin .btn{margin-left:auto}.brand small{display:none}}
+section{padding:76px 0;scroll-margin-top:70px}
+.eyebrow{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--violet);margin:0 0 14px}
+h1{font-size:clamp(44px,8.5vw,92px);line-height:.98;letter-spacing:-.035em;margin:0 0 20px}
+h2{font-size:clamp(28px,4.6vw,46px);letter-spacing:-.025em;margin:0 0 10px;line-height:1.08}
+h3{margin:0 0 6px;font-size:20px}
+.grad{background:linear-gradient(100deg,#b9aeff,#8b7bff 40%,#59e0b4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--muted);max-width:640px;font-size:17px}
+.btn{appearance:none;border:1px solid transparent;border-radius:14px;padding:12px 20px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .2s,opacity .2s,background .2s;color:var(--text);background:#ffffff0d}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,#9d8fff,#6c5ce7);color:#fff;box-shadow:0 8px 28px #6c5ce74d}
+.btn.primary:hover{box-shadow:0 10px 34px #6c5ce780}
+.btn.ghost{background:transparent;border-color:var(--line)}
+.btn.gold{background:linear-gradient(135deg,#f9d98b,#e0a93a);color:#1a1405}
+.btn.sm{padding:9px 14px;font-size:14px;border-radius:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding-top:34px}
+@media(max-width:860px){.hero{grid-template-columns:1fr}.heroMark{order:-1;max-width:260px}}
+.heroMark{width:100%;max-width:400px;justify-self:center;filter:drop-shadow(0 30px 60px #6c5ce740)}
+.heroMark svg,.card.art svg{width:100%;height:auto;display:block}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0}
+.stats{display:flex;flex-wrap:wrap;gap:10px 28px;list-style:none;padding:0;margin:0 0 18px}
+.stats li{color:var(--muted);font-size:14px}.stats b{display:block;color:var(--text);font-size:24px;letter-spacing:-.02em}
+.grid2{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.stack{display:grid;gap:16px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:4px;background:#0e0e15;margin:8px 0}
+.seg button{border:0;background:transparent;color:var(--muted);padding:8px 14px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--violet2);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:#0e0e15}
+.chip.gold{color:var(--gold);border-color:#f4c35a55}.chip.mint{color:var(--mint);border-color:#59e0b455}.chip.warn{color:var(--red);border-color:#ff6b8a55}
+.vault{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 12px;margin-bottom:8px}
+.thumb{flex:0 0 auto;width:88px;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:6px;cursor:pointer;color:var(--text);text-align:center;font:inherit;font-size:12px}
+.thumb[aria-current=true]{border-color:var(--violet);box-shadow:0 0 0 2px #8b7bff44}
+.thumb svg{display:block;width:100%;height:auto}
+.thumb.add{display:grid;place-items:center;color:var(--violet);font-size:13px;min-height:100px;border-style:dashed}
+.essHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.erow{display:grid;grid-template-columns:92px 104px 1fr;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.erow:last-of-type{border-bottom:0}
+.erow .k{color:var(--muted);font-size:14px}.erow .v{font-weight:700;letter-spacing:.02em}
+.bar{display:block;height:6px;border-radius:6px;background:#1d1d2e;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--violet),var(--mint));transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.code{background:#0a0a10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:auto;color:#b8b6d6;white-space:pre-wrap;word-break:break-all;margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.empty{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.emptyMark{width:200px;flex:0 0 auto}.emptyMark svg{width:100%;height:auto;display:block}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 5.5s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
+.lit{opacity:0;animation:light 5s ease-in-out infinite}
+@keyframes light{0%,100%{opacity:0}12%,34%{opacity:.85}52%{opacity:0}}
+.arena{display:grid;grid-template-columns:1fr 200px 1fr;gap:16px;align-items:center;margin-top:8px}
+@media(max-width:860px){.arena{grid-template-columns:1fr}}
+.fcard{text-align:center;transition:.4s;border-radius:16px;padding:12px}
+.fcard svg{width:100%;max-width:220px;height:auto}
+.flabel{font-weight:700;margin-bottom:8px}
+.handle{font-size:13px;color:var(--violet);margin-top:8px;min-height:20px}
+.mid{text-align:center;display:grid;gap:12px;justify-items:center}
+.vs{font-size:40px;font-weight:800;letter-spacing:-.04em;color:#ffffff33}
+.res{font-weight:700;min-height:26px}
+.win{box-shadow:0 0 0 2px var(--gold),0 0 50px #f4c35a40;background:#f4c35a0d}
+.lose{opacity:.5;filter:saturate(.5)}
+.duelTop{display:flex;gap:20px;justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
+.tally{font-size:22px;font-weight:700}
+.log{min-height:92px;margin-top:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:14px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:500;background:#0e0e15}
+td svg{width:36px;height:36px;display:block}
+tr.snipe td{background:#ff6b8a1a}tr.blind td{background:#8b7bff1a}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px}
+.tag.red{background:#ff6b8a30;color:var(--red)}.tag.vio{background:#8b7bff30;color:var(--violet)}
+.row2{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.toy{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+@media(max-width:860px){.toy{grid-template-columns:1fr}}
+.step{opacity:0;transform:translateY(8px);animation:up .5s forwards}
+@keyframes up{to{opacity:1;transform:none}}
+.step b{display:block;margin-bottom:6px}
+.num{font-size:22px;font-weight:700;word-break:break-all;color:var(--violet)}
+input[type=number]{width:110px;background:#0e0e15;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:11px 12px;font:inherit}
+.odds{display:grid;gap:14px;margin:18px 0}
+.oddrow{display:grid;grid-template-columns:110px 1fr 150px;gap:14px;align-items:center;font-size:14px}
+@media(max-width:600px){.oddrow{grid-template-columns:90px 1fr}.oddrow .r{grid-column:1/-1}}
+.oddrow .bar{height:10px}
+.rv{opacity:0;transform:translateY(16px);transition:opacity .8s,transform .8s}.rv.in{opacity:1;transform:none}
+.nojs .rv{opacity:1;transform:none}
+footer{border-top:1px solid var(--line);padding:36px 0 60px;color:var(--muted);font-size:13.5px}
+footer .wrap{display:grid;gap:10px}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:20px;padding:24px;max-width:min(480px,92vw)}
+dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
+dialog img{width:100%;border-radius:12px;display:block;margin:12px 0}
+dialog textarea{width:100%;min-height:90px;background:#0a0a10;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;font:13px/1.5 inherit;resize:vertical}
+.dlgBtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,30px);background:#1b1b2a;border:1px solid var(--line);padding:12px 18px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.35s;z-index:50;max-width:92vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.arena{position:relative;overflow:hidden}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.flashx{position:absolute;inset:0;background:radial-gradient(circle,#fff,#b9aeff 40%,transparent 70%);opacity:0;pointer-events:none;z-index:4}
+.flashx.go{animation:fl .6s ease-out}
+@keyframes fl{0%{opacity:.95}100%{opacity:0}}
+.fcard.charge{animation:chg .1s linear infinite;box-shadow:0 0 44px #8b7bff77}
+@keyframes chg{0%{transform:translate(0,0)}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-2px)}75%{transform:translate(-1px,-3px)}100%{transform:translate(0,0)}}
+.fcard.shatter{animation:shat .8s forwards}
+@keyframes shat{30%{transform:scale(1.06) rotate(2deg)}to{opacity:.35;filter:grayscale(1) blur(2px);transform:scale(.9) rotate(-3deg)}}
+.bit{font:800 72px/1 ui-monospace,monospace;color:var(--gold);opacity:.25;transform:scale(.7);transition:.45s cubic-bezier(.2,1.6,.4,1);text-shadow:0 0 30px #f4c35a00}
+.bit.on{opacity:1;transform:scale(1);text-shadow:0 0 36px #f4c35a99}
+.bitl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body class="nojs">
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div class="fun" role="note"><b>Just for fun.</b> A hobby project built by a community member for fun, not an official Fungo Labs product.</div>
+<header class="nav"><div class="wrap navin">
+  <a class="brand" href="#hero" aria-label="Fungo Labs Seal and Reveal">
+    <svg width="26" height="26" viewBox="0 0 30 30" aria-hidden="true"><g fill="#8b7bff"><rect x="1" y="1" width="8" height="8" rx="2"/><rect x="11" y="1" width="8" height="8" rx="2" opacity=".8"/><rect x="21" y="1" width="8" height="8" rx="2" opacity=".6"/><rect x="1" y="11" width="8" height="8" rx="2" opacity=".8"/><rect x="21" y="11" width="8" height="8" rx="2" opacity=".8"/><rect x="1" y="21" width="8" height="8" rx="2" opacity=".6"/><rect x="11" y="21" width="8" height="8" rx="2" opacity=".8"/><rect x="21" y="21" width="8" height="8" rx="2"/></g></svg>
+    <b>Fungo Labs</b><small>Seal &amp; Reveal</small>
+  </a>
+  <nav><a href="#lab">Lab</a><a href="#duel">Duel</a><a href="#why">Why sealed</a><a href="#toy">Toy FHE</a><a href="#odds">Odds</a></nav>
+  <a class="btn primary sm" id="applyBtn" target="_blank" rel="noopener">Apply for the whitelist</a>
+</div></header>
+
+<main>
+<section id="hero"><div class="wrap hero">
+  <div>
+    <p class="eyebrow">Community simulator · Built with FHE on Zama</p>
+    <h1>Seen by all.<br><span class="grad">Known by one.</span></h1>
+    <p class="lead">Mint a sealed NFT, look inside, publish it or never, sell it blind and duel in the dark. Try the mechanics of encrypted NFTs with your own hands before the genesis mints.</p>
+    <div class="cta"><button class="btn primary" data-act="mint-go">Mint your sealed NFT</button><a class="btn ghost" href="#why">Why sealed?</a></div>
+    <ul class="stats"><li><b>3,232</b>NFTs</li><li><b>500</b>free mints</li><li><b>1</b>secret each</li><li><b>FHE</b>by Zama</li></ul>
+    <p class="tiny muted">Unofficial community tool made for fun. The art is procedurally generated stand-in art.</p>
+  </div>
+  <div class="heroMark" id="heroMark"></div>
+</div></section>
+
+<section id="lab"><div class="wrap rv">
+  <p class="eyebrow">01 · The lab</p>
+  <h2>Your NFT. Your secret.</h2>
+  <p class="lead">Mint one, then change who is looking. The public, the holder, a buyer and a seller each see something different.</p>
+  <div class="vault" id="vault" style="margin-top:22px"></div>
+  <div id="labBody"></div>
+</div></section>
+
+<section id="duel"><div class="wrap rv">
+  <p class="eyebrow">02 · Duel in the dark</p>
+  <h2>A fight nobody can peek at.</h2>
+  <p class="lead">Both fighters stay encrypted. The contract compares them and only one bit comes out: who won. Elements loop: Night beats Mist, Mist beats Moon, Moon beats Dream, Dream beats Night.</p>
+  <div class="duelTop" style="margin-top:22px"><div><p class="muted small" style="margin:0 0 6px">Pick your fighter (you must still hold it)</p><div class="vault" id="duelPick"></div></div><div class="tally mono" id="tally">W 0 · L 0</div></div>
+  <div class="card arena" id="arena"><canvas id="fx" aria-hidden="true"></canvas><div class="flashx" id="flashx"></div>
+    <div id="cardL"></div>
+    <div class="mid"><div class="vs">VS</div><div class="bit" id="bit">?</div><div class="bitl">the only bit revealed</div><button class="btn primary" id="fight">Fight in the dark</button><div class="res" id="duelRes"></div></div>
+    <div id="cardR"></div>
+  </div>
+  <pre class="code log" id="duelLog">contract log appears here</pre>
+  <p class="tiny muted">Simulation note: this page computes the result locally. The real thing would compare the encrypted values directly.</p>
+</div></section>
+
+<section id="why"><div class="wrap rv">
+  <p class="eyebrow">03 · Why sealed</p>
+  <h2>Transparent NFTs get sniped.</h2>
+  <p class="lead">On a public chain every trait and stat can be scraped the second a collection reveals. Flip the switch and run the bot.</p>
+  <div class="row2">
+    <div class="seg" role="group" aria-label="Collection type"><button data-why="open" aria-pressed="true">Transparent NFT</button><button data-why="sealed" aria-pressed="false">Fungo sealed</button></div>
+    <button class="btn ghost" data-act="bot">Run the sniper bot</button>
+    <button class="btn ghost" data-act="reroll">Reroll collection</button>
+  </div>
+  <div class="tablewrap"><table id="whyTable"></table></div>
+  <pre class="code log" id="botLog" style="min-height:56px;margin-top:14px">bot idle</pre>
+</div></section>
+
+<section id="toy"><div class="wrap rv">
+  <p class="eyebrow">04 · Toy FHE</p>
+  <h2>enc(7) + enc(5) = enc(12)</h2>
+  <p class="lead">A contract can add numbers it can never read. Try it with a toy additive cipher.</p>
+  <div class="row2">
+    <label class="muted small">A <input type="number" id="toyA" min="0" max="9999" value="7"></label>
+    <label class="muted small">B <input type="number" id="toyB" min="0" max="9999" value="5"></label>
+    <button class="btn primary" data-act="toy">Encrypt, add, decrypt</button>
+  </div>
+  <div class="toy" id="toyOut"></div>
+  <p class="tiny muted">Toy only. Real FHE also multiplies and compares encrypted values, which is what makes private duels possible.</p>
+</div></section>
+
+<section id="odds"><div class="wrap rv">
+  <p class="eyebrow">05 · The draw</p>
+  <h2>Nobody picks what you get.</h2>
+  <p class="lead">At mint, two random 64-bit values decide your look and your essence. Class odds: Common 50.0%, Rare 30.1%, Ultra Rare 14.8%, Legendary 5.1%.</p>
+  <div class="odds" id="oddsBox"></div>
+  <div class="row2"><button class="btn primary" data-act="sim">Simulate all 3,232 genesis mints</button><span class="muted small" id="simNote"></span></div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <div><b>Just for fun.</b> Built for fun by a community member. Not affiliated with or endorsed by Fungo Labs or Zama, and not a real mint or sale. Everything runs in your browser, nothing is stored or sent anywhere. The demo cipher is AES-GCM; the real encrypted NFTs use FHE on Zama's FHEVM.</div>
+  <div><a id="fxLink" target="_blank" rel="noopener">Follow on X</a> · <a id="fsLink" target="_blank" rel="noopener">fungolabs.org</a> · <span id="credit"></span></div>
+</div></footer>
+
+<dialog id="dlg"><h3 id="dlgT"></h3><div id="dlgB" class="muted"></div><div class="dlgBtns"><button class="btn ghost" id="dlgNo">Cancel</button><button class="btn primary" id="dlgOk">OK</button></div></dialog>
+<dialog id="shareDlg"><h3>Your sealed draw</h3><p class="muted small" style="margin:6px 0 0">This card shows your essence. Share it only if you want to.</p><img id="shareImg" alt="Share card"><textarea id="shareTxt" readonly></textarea><div class="dlgBtns"><button class="btn ghost" id="shareClose">Close</button><button class="btn ghost" id="shareCopy">Copy text</button><a class="btn primary" id="shareDl" download="sealed-draw.png">Download PNG</a></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><div class="wrap"><p>This simulator needs JavaScript.</p></div></noscript>
+
+<script>
+(()=>{
+'use strict';
+/* ---------- EDIT ME ---------- */
+const CONFIG={
+  project:'Fungo Labs',
+  handle:'@fungolabs',
+  xUrl:'https://x.com/fungolabs',
+  siteUrl:'https://fungolabs.org/',
+  applyUrl:'https://fungolabs.org/apply/',
+  toolUrl:'',
+  credit:'Built by Frank for the community'
+};
+/* ----------------------------- */
+document.body.classList.remove('nojs');
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hex=u=>Array.from(u,b=>b.toString(16).padStart(2,'0')).join('');
+const rand32=()=>crypto.getRandomValues(new Uint32Array(1))[0];
+const rand64=()=>{const a=crypto.getRandomValues(new Uint32Array(2));return (BigInt(a[0])<<32n)|BigInt(a[1]);};
+const bytes8=v=>{const o=[];for(let i=7;i>=0;i--)o.push(Number((v>>BigInt(i*8))&255n));return o;};
+const short=h=>h.slice(0,8)+'…'+h.slice(-6);
+const rhex=n=>hex(crypto.getRandomValues(new Uint8Array(n)));
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),3000);};
+
+/* ---------- data ---------- */
+const CLASSES=[{n:'Common',p:50.0,lo:40,hi:160,c:'#9a99b0'},{n:'Rare',p:30.1,lo:80,hi:200,c:'#5aa9ff'},{n:'Ultra Rare',p:14.8,lo:130,hi:235,c:'#b583ff'},{n:'Legendary',p:5.1,lo:180,hi:254,c:'#f4c35a'}];
+const ELS=[{n:'Night',c:'#6f7bff'},{n:'Mist',c:'#6fd0d6'},{n:'Moon',c:'#dfe3f7'},{n:'Dream',c:'#f08ad0'}];
+const STATS=['Secrecy','Intuition','Will','Energy'];
+const PALS=[
+ {n:'Ember',c:['#2a1214','#ff7a45','#ffd166','#fff0d9']},
+ {n:'Glacier',c:['#0f2230','#5cc8ff','#b7f0ff','#eaffff']},
+ {n:'Orchid',c:['#22122e','#c07bff','#ff9bd6','#fbe9ff']},
+ {n:'Moss',c:['#10221a','#58d68d','#d4f36b','#efffe2']},
+ {n:'Dusk',c:['#1a1a33','#7f8cff','#ffb38a','#f1f0ff']},
+ {n:'Rose',c:['#2a1220','#ff6b8a','#ffc2a0','#ffeaf0']}
+];
+const beats=(a,b)=>(a+1)%4===b;
+
+function makeEssence(v){
+  const b=bytes8(v);
+  const r=(((b[0]<<16)|(b[6]<<8)|b[7])/16777216)*100;
+  let acc=0,ci=CLASSES.length-1;
+  for(let i=0;i<CLASSES.length;i++){acc+=CLASSES[i].p;if(r<acc){ci=i;break;}}
+  const c=CLASSES[ci];
+  const stats=[1,2,3,4].map(i=>Math.min(254,Math.round(c.lo+(b[i]/255)*(c.hi-c.lo))));
+  const el=b[5]%4;
+  return {bytes:[ci,...stats,el,0,0],ci,stats,el,power:stats.reduce((a,x)=>a+x,0)};
+}
+function makeLook(v){
+  const b=bytes8(v);
+  const x=b.reduce((a,c)=>a^c,0);
+  const roll=Number(v%1000n);
+  return {bytes:b,pal:PALS[x%PALS.length],crown:roll<4?'Gold':roll<30?'Silver':'None',kinds:new Set(b.map(t=>t&7)).size};
+}
+
+/* ---------- art ---------- */
+function tileArt(b,pal){
+  const k=b&7,rot=(b>>3)&3,tone=(b>>5)&3;
+  const [bg,c1,c2]=pal;
+  const A=tone&1?c1:c2,B=tone&1?c2:c1;
+  let g='';
+  switch(k){
+    case 0:for(let i=-92;i<=92;i+=18)g+=`<path d="M${i} 92L${i+92} 0" stroke="${A}" stroke-width="7"/>`;break;
+    case 1:g=`<circle cx="46" cy="46" r="36" fill="none" stroke="${A}" stroke-width="7"/><circle cx="46" cy="46" r="22" fill="none" stroke="${B}" stroke-width="7"/><circle cx="46" cy="46" r="8" fill="${A}"/>`;break;
+    case 2:for(let i=0;i<4;i++)for(let j=0;j<4;j++)g+=`<circle cx="${16+i*20}" cy="${16+j*20}" r="${(i+j)%2?5:7}" fill="${(i+j)%2?B:A}"/>`;break;
+    case 3:g=`<polygon points="46,10 82,80 10,80" fill="${A}"/><polygon points="46,36 64,70 28,70" fill="${B}"/>`;break;
+    case 4:g=`<rect x="36" y="8" width="20" height="76" rx="4" fill="${A}"/><rect x="8" y="36" width="76" height="20" rx="4" fill="${B}"/>`;break;
+    case 5:g=`<polygon points="8,84 8,64 28,64 28,44 48,44 48,24 68,24 68,8 84,8 84,84" fill="${A}"/><polygon points="28,84 28,70 48,70 48,50 68,50 68,30 84,30 84,84" fill="${B}" opacity=".85"/>`;break;
+    case 6:g=`<path d="M-4 34Q23 6 46 34T96 34" fill="none" stroke="${A}" stroke-width="8"/><path d="M-4 62Q23 34 46 62T96 62" fill="none" stroke="${B}" stroke-width="8"/>`;break;
+    default:g=`<polygon points="46,6 86,46 46,86 6,46" fill="${A}"/><polygon points="46,24 68,46 46,68 24,46" fill="${bg}"/><circle cx="46" cy="46" r="7" fill="${B}"/>`;
+  }
+  return `<g transform="rotate(${rot*90} 46 46)">${g}</g>`;
+}
+const RING=[0,1,2,5,8,7,6,3];
+const cellXY=i=>[12+(i%3)*95,12+Math.floor(i/3)*95];
+function markSVG({look=null,eye=false,ec='#8b7bff',uid='m',px=300,hero=false}={}){
+  const id='c'+uid;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="${px}" height="${px}" role="img" aria-label="${look?'Revealed mark':'Sealed mark'}"><defs><clipPath id="${id}"><rect width="92" height="92" rx="14"/></clipPath></defs><rect width="300" height="300" rx="24" fill="#0d0d15" stroke="#262637"/>`;
+  RING.forEach((ci,n)=>{
+    const [x,y]=cellXY(ci);
+    s+=`<g transform="translate(${x} ${y}) scale(.9348)"><g clip-path="url(#${id})">`;
+    if(look){s+=`<rect width="92" height="92" fill="${look.pal.c[0]}"/>`+tileArt(look.bytes[n],look.pal.c);}
+    else{
+      s+=`<rect width="92" height="92" fill="#15151f"/>`;
+      for(let i=-92;i<=92;i+=18)s+=`<path d="M${i} 92L${i+92} 0" stroke="#202034" stroke-width="7"/>`;
+      if(hero)s+=`<rect class="lit" width="92" height="92" fill="#8b7bff" style="animation-delay:${(n*.45).toFixed(2)}s"/>`;
+    }
+    s+=`</g><rect width="92" height="92" rx="14" fill="none" stroke="${look?'#ffffff1a':'#2a2a40'}"/></g>`;
+  });
+  if(eye){
+    s+=`<circle cx="150" cy="150" r="44" fill="${ec}" opacity=".12"/><g class="eye"><path d="M108 150Q150 112 192 150Q150 188 108 150Z" fill="#0b0b10" stroke="${ec}" stroke-width="3"/><circle cx="150" cy="150" r="14" fill="${ec}"/><circle cx="150" cy="150" r="6" fill="#0b0b10"/><circle cx="145" cy="145" r="3" fill="#fff" opacity=".85"/></g>`;
+  }else{
+    s+=`<rect x="116" y="116" width="68" height="68" rx="34" fill="none" stroke="#2a2a40" stroke-dasharray="3 6"/>`;
+  }
+  if(look&&look.crown!=='None'){
+    const col=look.crown==='Gold'?'#f4c35a':'#cfd3e8';
+    s+=`<g transform="translate(124 4)"><polygon points="0,26 4,4 17,16 26,0 35,16 48,4 52,26" fill="${col}" stroke="#0b0b10" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+  }
+  return s+'</svg>';
+}
+
+/* ---------- crypto (demo cipher) ---------- */
+async function seal(bytes){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  try{
+    if(!crypto.subtle)throw new Error('no subtle');
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new Uint8Array(bytes)));
+    return {key,iv,ct,mode:'AES-GCM'};
+  }catch(e){
+    const key=crypto.getRandomValues(new Uint8Array(bytes.length));
+    const ct=new Uint8Array([...bytes.map((b,i)=>b^key[i]),...crypto.getRandomValues(new Uint8Array(16))]);
+    return {key,iv,ct,mode:'XOR'};
+  }
+}
+async function openEssence(n){
+  if(n.mode==='AES-GCM')return [...new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:n.iv},n.key,n.ct))];
+  return [...n.ct.slice(0,8)].map((b,i)=>b^n.key[i]);
+}
+async function buildNFT(){
+  const look=makeLook(rand64()),ess=makeEssence(rand64());
+  const s=await seal(ess.bytes);
+  return {id:0,look,ess,...s,published:false,owner:'you',awake:true,ready:false,wake:0,decrypted:false,pt:null,prev:null,anim:false};
+}
+
+/* ---------- state ---------- */
+const S={nfts:[],sel:null,view:'holder',ids:new Set(),minting:false,wins:0,losses:0,duelBusy:false,duelSel:null,rival:null};
+const cur=()=>S.nfts.find(n=>n.id===S.sel)||null;
+function newId(){let id;do{id=1+(rand32()%3232);}while(S.ids.has(id));S.ids.add(id);return id;}
+
+function scramble(el,final,ms=800){
+  if(reduce){el.textContent=final;return;}
+  const ch='▒░█01ABCDEF9a7f',t0=performance.now();
+  (function f(t){
+    const k=Math.min(1,(t-t0)/ms);let o='';
+    for(let i=0;i<final.length;i++)o+=(i<final.length*k)?final[i]:ch[Math.random()*ch.length|0];
+    el.textContent=o;
+    if(k<1)requestAnimationFrame(f);else el.textContent=final;
+  })(t0);
+}
+
+function confirmDlg(title,body,ok){
+  return new Promise(res=>{
+    const d=$('#dlg');$('#dlgT').textContent=title;$('#dlgB').innerHTML=body;$('#dlgOk').textContent=ok;
+    $('#dlgOk').onclick=()=>{d.close();res(true);};
+    $('#dlgNo').onclick=()=>{d.close();res(false);};
+    d.oncancel=()=>res(false);
+    d.showModal();
+  });
+}
+
+/* ---------- lab ---------- */
+function renderVault(){
+  const el=$('#vault');
+  el.innerHTML=S.nfts.map(n=>`<button class="thumb" data-sel="${n.id}" aria-current="${n.id===S.sel}" aria-label="Select NFT ${n.id}">${markSVG({look:n.published?n.look:null,uid:'t'+n.id,px:120})}<div>#${n.id}</div></button>`).join('')
+   +`<button class="thumb add" data-act="mint"${S.minting?' disabled':''}>+<br>${S.minting?'Sealing…':'Mint'}</button>`;
+}
+function renderLab(){
+  const box=$('#labBody'),n=cur();
+  if(!n){
+    box.innerHTML=`<div class="card empty"><div class="emptyMark">${markSVG({uid:'empty',px:240})}</div><div><h3>Nothing minted yet</h3><p class="muted" style="max-width:420px">Every NFT mints sealed, so the world sees the same mark on all of them. One secret each.</p><button class="btn primary" data-act="mint">Mint a sealed NFT</button></div></div>`;
+    return;
+  }
+  if(S.view==='seller'&&n.owner!=='buyer')S.view='holder';
+  const v=S.view,holder=v==='holder',sold=n.owner==='buyer';
+  const showLook=n.published||(holder&&n.awake);
+  const eye=holder&&n.awake;
+  const pt=n.pt;
+  const canSee=!!(holder&&n.awake&&n.decrypted&&pt);
+  const ec=canSee?ELS[pt[5]].c:'#8b7bff';
+  const art=markSVG({look:showLook?n.look:null,eye,ec,uid:'a'+n.id+v,px:300});
+  const views=[['public','The public'],['holder',sold?'Holder (buyer)':'Holder (you)']];
+  if(sold)views.push(['seller','You, the seller']);
+  const desc=v==='public'?'The public sees a normal NFT: token, holder and a sealed mark. Nothing else.'
+    :v==='seller'?'You sold this NFT. Your view ended the moment you sold. What you saw while you held it stays with you.'
+    :n.awake?'The holder sees the art any time and can decrypt the essence for their eyes only.'
+    :'The sale settled. This holder must wait out finality before looking inside.';
+  const chips=[`<span class="chip ${n.published?'gold':''}">${n.published?'Art published':'Art sealed'}</span>`];
+  if(!n.awake)chips.push('<span class="chip warn">Asleep</span>');
+
+  const st=canSee?pt.slice(1,5):[0,0,0,0];
+  const pw=st.reduce((a,x)=>a+x,0);
+  const cls=canSee?CLASSES[pt[0]]:null,el=canSee?ELS[pt[5]]:null;
+  const val=(k,txt,mask,color)=>`<span class="k">${k}</span><span class="v mono" ${canSee?`data-final="${esc(txt)}"`:''} ${canSee&&color?`style="color:${color}"`:''}>${canSee?esc(txt):mask}</span>`;
+  const bar=i=>{const w=canSee?Math.round(st[i]/254*100):0;return `<span class="bar"><i data-w="${w}" style="width:${canSee&&!n.anim?w:0}%"></i></span>`;};
+  const rows=
+    `<div class="erow">${val('Class',canSee?cls.n:'','▒▒▒▒▒▒',canSee?cls.c:'')}<span></span></div>`+
+    STATS.map((s,i)=>`<div class="erow">${val(s,String(st[i]),'▒▒▒')}${bar(i)}</div>`).join('')+
+    `<div class="erow">${val('Power',`${pw} / 1016`,'▒▒▒ / 1016')}<span></span></div>`+
+    `<div class="erow">${val('Element',canSee?el.n:'','▒▒▒▒',canSee?el.c:'')}<span></span></div>`;
+  const handle=`<p class="tiny muted" style="margin:12px 0 0">What everyone sees: a ciphertext handle <code class="mono" style="color:var(--violet)">${short(hex(n.ct))}</code></p>`;
+  const essHtml=`<div class="essHead"><b>Essence · #${n.id}</b><span class="chip ${canSee?'mint':''}">${canSee?'Decrypted for you alone':'Encrypted'}</span></div>${rows}${handle}`;
+
+  let side='';
+  if(holder&&showLook){
+    side=`<div class="card"><b>Look</b><div class="chips"><span class="chip">Palette · ${n.look.pal.n}</span><span class="chip ${n.look.crown==='Gold'?'gold':''}">Crown · ${n.look.crown}</span><span class="chip">Variety · ${n.look.kinds}/8</span></div><p class="tiny muted" style="margin:10px 0 0">${n.published?'Published, so everyone sees this.':'Only you can see this until you publish it.'}</p></div>`;
+  }else if(!holder){
+    const meta=n.published
+      ?{name:'#'+n.id,image:'the art (published)',attributes:[{trait_type:'Palette',value:n.look.pal.n},{trait_type:'Crown',value:n.look.crown},{trait_type:'Variety',value:n.look.kinds+'/8'},{trait_type:'Revealed',value:'Yes'},{trait_type:'Essence',value:'Encrypted'}]}
+      :{name:'#'+n.id,image:'the mark',attributes:[{trait_type:'Revealed',value:'No'}]};
+    side=`<div><p class="tiny muted" style="margin:0 0 6px">What a marketplace reads</p><pre class="code">${esc(JSON.stringify(meta,null,2))}</pre></div>`;
+  }
+
+  let act='';
+  if(v==='seller'){
+    act=`<button class="btn ghost" data-act="peek">Try my old key</button><pre class="code" id="peekOut" hidden style="width:100%"></pre>`;
+  }else if(holder&&!n.awake){
+    act=`<div class="card" style="width:100%"><p class="muted small" style="margin:0 0 10px">Just sold. The new holder has to wait a short while before looking inside.</p><span class="bar"><i id="wakeBar" style="width:${n.wake/96*100}%;transition:none"></i></span><p class="mono tiny muted" id="wakeTxt" style="margin:8px 0 12px">block ${n.wake} / 96 (about 19 min on mainnet)</p>${n.ready?'<button class="btn primary" data-act="wake">Wake it</button>':''}</div>`;
+  }else if(holder){
+    act=(canSee?'':`<button class="btn primary" data-act="decrypt">Decrypt for me</button>`)
+      +(n.published?`<button class="btn ghost" disabled>Published for good</button>`:`<button class="btn gold" data-act="publish">Publish art</button>`)
+      +(n.owner==='you'?`<button class="btn ghost" data-act="sell">Sell it</button>`:'')
+      +(canSee?`<button class="btn ghost" data-act="share">Share card</button>`:'');
+  }else{
+    act=`<span class="muted small">Switch to the holder to act on it.</span>`;
+  }
+  box.innerHTML=`<div class="grid2"><div class="card art">${art}<div class="chips">${chips.join('')}</div></div><div class="stack"><div><span class="muted small">Who's looking</span><br><div class="seg" role="group" aria-label="Who is looking">${views.map(([k,l])=>`<button data-view="${k}" aria-pressed="${v===k}">${l}</button>`).join('')}</div><p class="muted small" style="margin:0">${desc}</p></div><div class="card">${essHtml}</div>${side}<div class="actions">${act}</div></div></div>`;
+  if(n.anim&&canSee){
+    n.anim=false;
+    requestAnimationFrame(()=>{
+      $$('#labBody [data-final]').forEach((e,i)=>setTimeout(()=>scramble(e,e.dataset.final,700),reduce?0:i*90));
+      $$('#labBody .bar i').forEach(i=>{i.style.width=i.dataset.w+'%';});
+    });
+  }
+}
+function updateWake(n){
+  const b=$('#wakeBar'),t=$('#wakeTxt');
+  if(!b||!t||cur()!==n)return;
+  b.style.width=(n.wake/96*100)+'%';t.textContent=`block ${n.wake} / 96 (about 19 min on mainnet)`;
+}
+function startWake(n){
+  const t=setInterval(()=>{
+    n.wake++;
+    if(n.wake>=96){clearInterval(t);n.wake=96;n.ready=true;if(cur()===n)renderLab();}
+    else updateWake(n);
+  },70);
+}
+async function mint(){
+  if(S.minting)return;
+  if(S.nfts.length>=12){toast('Vault is full for this demo (12).');return;}
+  S.minting=true;renderVault();
+  toast('Drawing two random 64-bit values…');
+  try{
+    const n=await buildNFT();
+    await sleep(reduce?0:900);
+    n.pt=await openEssence(n);n.decrypted=true;n.anim=true;
+    n.id=newId();S.nfts.push(n);S.sel=n.id;S.view='holder';
+    toast(`Minted #${n.id}, sealed. Only you can look inside.`);
+  }catch(e){toast('Mint failed in this browser. Try another one.');}
+  S.minting=false;render();
+}
+async function decrypt(){
+  const n=cur();if(!n||!n.awake)return;
+  n.pt=await openEssence(n);n.decrypted=true;n.anim=true;renderLab();
+}
+async function publish(){
+  const n=cur();
+  const ok=await confirmDlg('Publish this art?','<p>Publishing is <b>for good</b>. The art and its traits become visible to everyone and nobody can take it back, not you and not the team.</p><p>Your <b>essence</b> (class, stats, element) stays encrypted. It never goes public.</p>','Publish for good');
+  if(!ok)return;
+  toast('Publishing…');
+  await sleep(reduce?0:800);
+  n.published=true;toast('Published. Everyone can see the art now.');render();
+}
+async function sell(){
+  const n=cur();
+  const ok=await confirmDlg(`Sell #${n.id}?`,'<p>The sale ends your view instantly. The buyer can look inside after a short wait (about 19 minutes on mainnet).</p><p>Art that was already published stays public.</p>','Sell it');
+  if(!ok)return;
+  const old={key:n.key,iv:n.iv,ct:n.ct,mode:n.mode};
+  const s=await seal(n.ess.bytes);
+  Object.assign(n,s);
+  n.prev=old;n.owner='buyer';n.awake=false;n.ready=false;n.wake=0;n.decrypted=false;n.pt=null;
+  S.view='holder';startWake(n);
+  toast('Sold. Watch the buyer wait, or switch to the seller and try your old key.');
+  render();
+}
+function wake(){
+  const n=cur();n.awake=true;n.ready=false;
+  toast('Woken. The art and essence are now visible to the new holder.');render();
+}
+async function peek(){
+  const n=cur(),out=$('#peekOut');
+  out.hidden=false;out.textContent='> decrypt(handle, oldKey) …';
+  await sleep(reduce?0:600);
+  let msg;
+  try{
+    if(n.mode!=='AES-GCM')throw new Error('auth tag mismatch');
+    await crypto.subtle.decrypt({name:'AES-GCM',iv:n.iv},n.prev.key,n.ct);
+    msg='unexpected: decrypted';
+  }catch(e){
+    msg=`${e.name==='OperationError'?'OperationError':'Error'}: decryption failed (auth tag mismatch).\nYour old key does not open the new ciphertext.\nYour view ended when you sold.`;
+  }
+  out.textContent='> decrypt(handle, oldKey)\n'+msg;
+}
+
+/* share card */
+function svgToImg(svg){
+  return new Promise((res,rej)=>{
+    const u=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'}));
+    const i=new Image();i.onload=()=>{res(i);setTimeout(()=>URL.revokeObjectURL(u),10000);};i.onerror=rej;i.src=u;
+  });
+}
+async function share(){
+  const n=cur();if(!n||!n.pt)return;
+  const pt=n.pt,cls=CLASSES[pt[0]],el=ELS[pt[5]],st=pt.slice(1,5),power=st.reduce((a,x)=>a+x,0);
+  try{
+    const img=await svgToImg(markSVG({look:n.look,eye:true,ec:el.c,uid:'share',px:520}));
+    const c=document.createElement('canvas');c.width=1200;c.height=630;const g=c.getContext('2d');
+    const gr=g.createLinearGradient(0,0,1200,630);gr.addColorStop(0,'#0b0b10');gr.addColorStop(1,'#1c1647');
+    g.fillStyle=gr;g.fillRect(0,0,1200,630);
+    const rg=g.createRadialGradient(320,315,40,320,315,420);rg.addColorStop(0,'#6c5ce744');rg.addColorStop(1,'#6c5ce700');
+    g.fillStyle=rg;g.fillRect(0,0,1200,630);
+    g.drawImage(img,60,55,520,520);
+    const X=640;g.textBaseline='alphabetic';
+    g.fillStyle='#8b7bff';g.font='600 20px ui-monospace,Menlo,monospace';g.fillText('SEEN BY ALL. KNOWN BY ONE.',X,100);
+    g.fillStyle='#ecebf5';g.font='800 96px ui-sans-serif,system-ui,sans-serif';g.fillText('#'+n.id,X,196);
+    g.fillStyle=cls.c;g.font='700 52px ui-sans-serif,system-ui,sans-serif';g.fillText(cls.n,X,262);
+    g.fillStyle=el.c;g.font='600 32px ui-sans-serif,system-ui,sans-serif';g.fillText(el.n+'  ·  Power '+power+' / 1016',X,314);
+    STATS.forEach((s,i)=>{
+      const y=372+i*50;
+      g.fillStyle='#8d8ca6';g.font='500 22px ui-sans-serif,system-ui,sans-serif';g.fillText(s,X,y);
+      g.fillStyle='#1d1d2e';g.fillRect(X+150,y-18,340,12);
+      const bg2=g.createLinearGradient(X+150,0,X+490,0);bg2.addColorStop(0,'#8b7bff');bg2.addColorStop(1,'#59e0b4');
+      g.fillStyle=bg2;g.fillRect(X+150,y-18,340*st[i]/254,12);
+      g.fillStyle='#ecebf5';g.fillText(String(st[i]),X+510,y);
+    });
+    g.fillStyle='#8d8ca6';g.font='500 18px ui-sans-serif,system-ui,sans-serif';
+    g.fillText('Sealed in the Seal & Reveal simulator · just for fun, unofficial',X,596);
+    const url=c.toDataURL('image/png');
+    $('#shareImg').src=url;$('#shareDl').href=url;$('#shareDl').download=`sealed-${n.id}.png`;
+    $('#shareTxt').value=`Just sealed #${n.id} in a fun unofficial ${CONFIG.project} simulator: ${cls.n} ${el.n}, power ${power}/1016. Seen by all. Known by one. ${CONFIG.handle} ${CONFIG.toolUrl||CONFIG.siteUrl}`;
+    $('#shareDlg').showModal();
+  }catch(e){toast('Could not build the card in this browser.');}
+}
+
+/* ---------- duel ---------- */
+let rivalP=null;
+function ensureRival(){
+  if(S.rival)return Promise.resolve(S.rival);
+  if(!rivalP)rivalP=buildNFT().then(r=>{S.rival=r;rivalP=null;return r;});
+  return rivalP;
+}
+function fighterHTML(n,label,uid,hid){
+  return `<div class="fcard"><div class="flabel">${label}</div>${markSVG({look:n&&n.published?n.look:null,uid,px:200})}<div class="mono handle" id="${hid}">${n?short(hex(n.ct)):'…'}</div><div class="muted tiny">class ▒▒▒ · element ▒▒▒ · power ▒▒▒</div></div>`;
+}
+function renderArena(){
+  const a=S.nfts.find(n=>n.id===S.duelSel)||null,b=S.rival;
+  $('#cardL').innerHTML=a?fighterHTML(a,`You · #${a.id}`,'dl','hL'):`<div class="fcard muted">Mint an NFT in the lab to fight</div>`;
+  $('#cardR').innerHTML=b?fighterHTML(b,'Rival · sealed','dr','hR'):`<div class="fcard muted">Finding a rival…</div>`;
+  $('#duelRes').textContent='';const bt=$('#bit');bt.textContent='?';bt.classList.remove('on');
+  $('#fight').textContent=b&&b.fought?'New rival, fight again':'Fight in the dark';
+  $('#fight').disabled=!a||S.duelBusy;
+  if(!b)ensureRival().then(renderArena);
+}
+function renderDuelPicker(){
+  const mine=S.nfts.filter(n=>n.owner==='you'),box=$('#duelPick');
+  if(!mine.some(n=>n.id===S.duelSel))S.duelSel=mine.length?mine[0].id:null;
+  box.innerHTML=mine.length?mine.map(n=>`<button class="thumb" data-duel="${n.id}" aria-current="${n.id===S.duelSel}">${markSVG({look:n.published?n.look:null,uid:'d'+n.id,px:100})}<div>#${n.id}</div></button>`).join(''):`<span class="muted small">No NFT yet. <a href="#lab">Mint one in the lab</a>.</span>`;
+  if(!S.duelBusy)renderArena();
+}
+const FX={ps:[],rings:[],run:false};
+function fxSize(){const c=$('#fx'),r=c.parentElement.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);c.width=r.width*d;c.height=r.height*d;FX.d=d;}
+function fxLoop(){
+  const c=$('#fx'),g=c.getContext('2d');g.setTransform(FX.d,0,0,FX.d,0,0);g.clearRect(0,0,c.width,c.height);
+  FX.ps=FX.ps.filter(p=>p.l>0);
+  for(const p of FX.ps){p.l--;p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0;g.globalAlpha=Math.max(0,p.l/p.m);g.fillStyle=p.c;
+    if(p.t){g.font=p.s+'px ui-monospace,monospace';g.fillText(p.t,p.x,p.y);}else{g.beginPath();g.arc(p.x,p.y,p.s,0,7);g.fill();}}
+  FX.rings=FX.rings.filter(r=>r.a>0);
+  for(const r of FX.rings){r.r+=11;r.a-=.022;g.globalAlpha=Math.max(0,r.a);g.strokeStyle=r.c;g.lineWidth=4;g.beginPath();g.arc(r.x,r.y,r.r,0,7);g.stroke();}
+  g.globalAlpha=1;
+  if(FX.ps.length||FX.rings.length)requestAnimationFrame(fxLoop);else FX.run=false;
+}
+const spawn=p=>{FX.ps.push(Object.assign({l:55,m:55,s:12,c:'#8b7bff',vx:0,vy:0},p));if(!FX.run){FX.run=true;requestAnimationFrame(fxLoop);}};
+function mid(){const a=$('#arena').getBoundingClientRect(),m=$('.vs').getBoundingClientRect();return{x:m.left-a.left+m.width/2,y:m.top-a.top+m.height/2};}
+function sideXY(id){const a=$('#arena').getBoundingClientRect(),r=$(id).getBoundingClientRect();return{x:r.left-a.left+r.width/2,y:r.top-a.top+r.height/2};}
+function stream(){
+  const m=mid();
+  [['#cardL','#8b7bff'],['#cardR','#59e0b4']].forEach(([id,c])=>{
+    const o=sideXY(id);
+    for(let i=0;i<5;i++)spawn({x:o.x+(Math.random()-.5)*90,y:o.y+(Math.random()-.5)*90,vx:(m.x-o.x)/48,vy:(m.y-o.y)/48,t:rhex(1),s:12+Math.random()*10,c,l:48,m:48});
+  });
+}
+function finale(win){
+  const m=mid(),w=sideXY(win?'#cardL':'#cardR');
+  $('#flashx').classList.remove('go');void $('#flashx').offsetWidth;$('#flashx').classList.add('go');
+  FX.rings.push({x:m.x,y:m.y,r:0,a:1,c:'#b9aeff'},{x:m.x,y:m.y,r:-40,a:1.3,c:'#f4c35a'});
+  if(!FX.run){FX.run=true;requestAnimationFrame(fxLoop);}
+  for(let i=0;i<60;i++){const an=Math.random()*6.28,v=2+Math.random()*5;spawn({x:m.x,y:m.y,vx:Math.cos(an)*v,vy:Math.sin(an)*v,s:2+Math.random()*3,c:i%3?'#f4c35a':'#fff',l:70,m:70,g:.05});}
+  for(let i=0;i<45;i++){spawn({x:w.x+(Math.random()-.5)*160,y:w.y+80,vx:(Math.random()-.5)*2,vy:-2-Math.random()*3,s:2+Math.random()*3,c:'#f4c35a',l:90,m:90,g:.04});}
+}
+async function fight(){
+  if(S.duelBusy)return;
+  const a=S.nfts.find(n=>n.id===S.duelSel);
+  if(!a){toast('Mint an NFT first.');return;}
+  S.duelBusy=true;$('#fight').disabled=true;
+  if(S.rival&&S.rival.fought)S.rival=null;
+  await ensureRival();renderArena();$('#fight').disabled=true;
+  const b=S.rival,log=$('#duelLog'),hL=$('#hL'),hR=$('#hR');
+  log.textContent='';
+  const fl=setInterval(()=>{hL.textContent=short(rhex(24));hR.textContent=short(rhex(24));},70);
+  $('#cardL .fcard').classList.add('charge');$('#cardR .fcard').classList.add('charge');
+  let sf=null;if(!reduce){fxSize();sf=setInterval(stream,60);}
+  for(const l of ['contract: gt = FHE.gt(enc_power_a, enc_power_b)','contract: boost = FHE.select(element_edge, 108, 100)','contract: win = FHE.select(gt, a, b)','relayer: decrypt 1 bit']){
+    log.textContent+=l+'\n';await sleep(reduce?0:620);
+  }
+  clearInterval(fl);clearInterval(sf);$('#cardL .fcard').classList.remove('charge');$('#cardR .fcard').classList.remove('charge');hL.textContent=short(hex(a.ct));hR.textContent=short(hex(b.ct));
+  const ea=a.ess.power*(beats(a.ess.el,b.ess.el)?1.08:1),eb=b.ess.power*(beats(b.ess.el,a.ess.el)?1.08:1);
+  const win=ea>eb||(ea===eb&&a.ess.stats[2]>=b.ess.stats[2]);
+  if(win)S.wins++;else S.losses++;
+  $('#cardL .fcard').classList.add(win?'win':'lose');$('#cardR .fcard').classList.add(win?'lose':'win');
+  $((win?'#cardR':'#cardL')+' .fcard').classList.add('shatter');
+  const bt=$('#bit');bt.textContent=win?'1':'0';bt.classList.add('on');if(!reduce)finale(win);
+  $('#duelRes').textContent=win?'You win':'Rival wins';
+  $('#duelRes').style.color=win?'var(--gold)':'var(--red)';
+  log.textContent+=`result: ${win?'you win':'rival wins'}\nOne bit came out. Class, stats and elements stayed encrypted.`;
+  $('#tally').textContent=`W ${S.wins} · L ${S.losses}`;
+  b.fought=true;S.duelBusy=false;$('#fight').disabled=false;$('#fight').textContent='New rival, fight again';
+}
+
+/* ---------- why sealed ---------- */
+const W={mode:'open',col:[]};
+function genCollection(){
+  W.col=Array.from({length:12},(_,i)=>({id:1+i*263+(rand32()%200),ess:makeEssence(rand64()),look:makeLook(rand64()),h:rhex(24)}));
+  [...W.col].sort((a,b)=>b.ess.power-a.ess.power||b.ess.ci-a.ess.ci).forEach((n,i)=>{n.rank=i+1;});
+  $('#botLog').textContent='bot idle';
+}
+function renderWhy(){
+  const o=W.mode==='open';
+  $('#whyTable').innerHTML=`<thead><tr><th>Token</th><th></th><th>Rarity rank</th><th>Class</th><th>Power</th><th>Element</th><th>Public data</th></tr></thead><tbody>`+
+    W.col.map((n,i)=>`<tr id="wr${i}"><td>#${n.id}</td><td>${markSVG({look:o?n.look:null,uid:'w'+i+W.mode,px:40})}</td><td class="mono">${o?'#'+n.rank:'▒▒'}</td><td style="color:${o?CLASSES[n.ess.ci].c:'inherit'}">${o?CLASSES[n.ess.ci].n:'▒▒▒▒▒▒'}</td><td class="mono">${o?n.ess.power:'▒▒▒'}</td><td>${o?ELS[n.ess.el].n:'▒▒▒▒'}</td><td class="mono tiny muted">${o?'readable by anyone':short(n.h)}</td></tr>`).join('')+'</tbody>';
+  $$('[data-why]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.why===W.mode)));
+}
+async function bot(){
+  const log=$('#botLog'),o=W.mode==='open';
+  renderWhy();log.textContent='bot: scraping 12 tokens…\n';
+  await sleep(reduce?0:500);
+  if(o){
+    log.textContent+='bot: rarity ranks computed in 0.4s. Buying the top 3 before holders notice.\n';
+    const top=W.col.map((n,i)=>[n,i]).sort((a,b)=>a[0].rank-b[0].rank).slice(0,3);
+    for(const [n,i] of top){
+      await sleep(reduce?0:450);
+      const r=$('#wr'+i);r.classList.add('snipe');r.firstElementChild.insertAdjacentHTML('beforeend','<span class="tag red">sniped</span>');
+      log.textContent+=`bot: bought #${n.id} at floor (rank #${n.rank}).\n`;
+    }
+    log.textContent+='Result: the rare ones were gone before the community saw them.';
+  }else{
+    log.textContent+='bot: every row is a ciphertext handle. Nothing to rank.\nbot: guessing blind…\n';
+    const pick=[...W.col.keys()].sort(()=>Math.random()-.5).slice(0,3);
+    for(const i of pick){
+      await sleep(reduce?0:450);
+      const r=$('#wr'+i);r.classList.add('blind');r.firstElementChild.insertAdjacentHTML('beforeend','<span class="tag vio">blind guess</span>');
+    }
+    log.textContent+='Result: the bot paid floor for average luck. Holders keep their secrets.';
+  }
+}
+
+/* ---------- toy fhe ---------- */
+function toy(){
+  const N=1000003,clamp=v=>Math.max(0,Math.min(9999,parseInt(v,10)||0));
+  const a=clamp($('#toyA').value),b=clamp($('#toyB').value);
+  $('#toyA').value=a;$('#toyB').value=b;
+  const ka=rand32()%N,kb=rand32()%N,ca=(a+ka)%N,cb=(b+kb)%N,cs=(ca+cb)%N,res=(((cs-(ka+kb))%N)+N)%N;
+  const card=(d,t,body)=>`<div class="card step" style="animation-delay:${d}s"><b>${t}</b>${body}</div>`;
+  $('#toyOut').innerHTML=
+    card(0,'1 · You encrypt',`<p class="muted small" style="margin:0 0 8px">${a} and ${b} become random-looking numbers.</p><div class="num mono">${ca}</div><div class="num mono">${cb}</div>`)+
+    card(.6,'2 · The contract adds',`<p class="muted small" style="margin:0 0 8px">It adds the ciphertexts. It never sees ${a}, ${b} or their sum.</p><div class="num mono">${cs}</div>`)+
+    card(1.2,'3 · You decrypt',`<p class="muted small" style="margin:0 0 8px">Remove your two keys and the answer appears.</p><div class="num mono" style="color:var(--mint)">${res}</div><p class="tiny muted" style="margin:6px 0 0">${a} + ${b} = ${a+b} ${res===a+b?'✓':''}</p>`);
+}
+
+/* ---------- odds ---------- */
+function renderOdds(counts){
+  $('#oddsBox').innerHTML=CLASSES.map((c,i)=>{
+    const actual=counts?counts[i]/3232*100:c.p;
+    return `<div class="oddrow"><b style="color:${c.c}">${c.n}</b><span class="bar"><i style="width:${Math.min(100,actual*1.8)}%;background:${c.c}"></i></span><span class="r mono muted">${counts?`${counts[i]} drawn · ${actual.toFixed(1)}%`:c.p.toFixed(1)+'% odds'}</span></div>`;
+  }).join('');
+  if(counts)requestAnimationFrame(()=>{});
+}
+function sim(){
+  const counts=[0,0,0,0],els=[0,0,0,0];let best=0;
+  for(let i=0;i<3232;i++){const e=makeEssence(rand64());counts[e.ci]++;els[e.el]++;if(e.power>best)best=e.power;}
+  renderOdds(counts);
+  $('#simNote').textContent=`Strongest draw: ${best} / 1016 · Night ${els[0]}, Mist ${els[1]}, Moon ${els[2]}, Dream ${els[3]}`;
+}
+
+/* ---------- wiring ---------- */
+function render(){renderVault();renderLab();renderDuelPicker();}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act],[data-sel],[data-view],[data-duel],[data-why]');
+  if(!t||t.disabled)return;
+  if(t.dataset.sel){S.sel=+t.dataset.sel;render();return;}
+  if(t.dataset.view){S.view=t.dataset.view;renderLab();return;}
+  if(t.dataset.duel){S.duelSel=+t.dataset.duel;renderDuelPicker();return;}
+  if(t.dataset.why){W.mode=t.dataset.why;renderWhy();return;}
+  const a=t.dataset.act;
+  if(a==='mint')mint();
+  else if(a==='mint-go'){$('#lab').scrollIntoView({behavior:reduce?'auto':'smooth'});mint();}
+  else if(a==='decrypt')decrypt();
+  else if(a==='publish')publish();
+  else if(a==='sell')sell();
+  else if(a==='wake')wake();
+  else if(a==='peek')peek();
+  else if(a==='share')share();
+  else if(a==='bot')bot();
+  else if(a==='reroll'){genCollection();renderWhy();}
+  else if(a==='toy')toy();
+  else if(a==='sim')sim();
+});
+$('#fight').addEventListener('click',fight);
+$('#shareClose').addEventListener('click',()=>$('#shareDlg').close());
+$('#shareCopy').addEventListener('click',async()=>{
+  const ta=$('#shareTxt');
+  try{await navigator.clipboard.writeText(ta.value);}catch(e){ta.select();document.execCommand('copy');}
+  toast('Copied. Paste it into your post.');
+});
+
+/* background */
+(()=>{
+  const c=$('#bg'),g=c.getContext('2d');let w,h,P=[];
+  const size=()=>{const d=Math.min(2,devicePixelRatio||1);w=c.width=innerWidth*d;h=c.height=innerHeight*d;};
+  const init=()=>{const d=Math.min(2,devicePixelRatio||1);P=Array.from({length:Math.round(innerWidth/22)},()=>({x:Math.random()*w,y:Math.random()*h,v:(.1+Math.random()*.35)*d,s:(10+Math.random()*8)*d,t:rhex(2),a:.04+Math.random()*.1}));};
+  const draw=()=>{
+    g.clearRect(0,0,w,h);
+    P.forEach(p=>{g.fillStyle=`rgba(139,123,255,${p.a})`;g.font=`${p.s}px ui-monospace,monospace`;g.fillText(p.t,p.x,p.y);if(!reduce){p.y-=p.v;if(p.y<-20){p.y=h+20;p.x=Math.random()*w;}}});
+    if(!reduce)requestAnimationFrame(draw);
+  };
+  size();init();draw();
+  addEventListener('resize',()=>{size();init();if(reduce)draw();});
+})();
+
+/* init */
+$('#applyBtn').href=CONFIG.applyUrl;$('#fxLink').href=CONFIG.xUrl;$('#fsLink').href=CONFIG.siteUrl;$('#credit').textContent=CONFIG.credit;
+$('#heroMark').innerHTML=markSVG({uid:'hero',px:380,hero:true});
+genCollection();renderWhy();renderOdds();render();toy();
+const io='IntersectionObserver' in window&&!reduce?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.06}):null;
+$$('.rv').forEach(el=>io?io.observe(el):el.classList.add('in'));
+})();
+</script>
+</body>
+</html>
