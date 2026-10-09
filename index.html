@@ -143,7 +143,13 @@ h1{font-size:1.8rem}
 .card{padding:1.1rem}
 }
 #sug{margin:.8rem 0}
-#sugl{display:flex;flex-wrap:wrap;gap:.4rem;max-height:140px;overflow:auto;padding:2px;overscroll-behavior:contain}
+#sugl{display:block;max-height:360px;overflow:auto;overscroll-behavior:contain;border:1px solid #2a2410;border-radius:22px;background:rgba(10,9,6,.8)}
+.tr.sgr{grid-template-columns:2rem 1fr auto;cursor:pointer;min-height:64px}
+.tr.sgr:last-child{border-bottom:0}
+.tr.sgr:hover,.tr.sgr:focus-visible{background:rgba(255,215,0,.06);outline:0}
+.addb{border:1px solid #6a5600;border-radius:999px;padding:.4em 1em;color:var(--y);font-size:.8em;white-space:nowrap}
+.tr.sgr:hover .addb{background:var(--y);color:#111;font-weight:700}
+.tr.mu{display:block}
 .sg{display:inline-flex;align-items:center;gap:.4em;padding:.3em .8em .3em .3em;font-size:.8em;min-height:38px}
 .sg img{width:26px;height:26px;border-radius:7px}
 #lbs{margin-top:1.6rem;border:1px solid #2a2410;border-radius:18px;padding:.8rem 1rem 1rem;background:rgba(10,9,6,.8)}
@@ -216,6 +222,7 @@ h1{font-size:1.8rem}
    if the fetch fails (bad handle, offline, or a host that blocks remote images) it falls back to a generated avatar. */
 const LIVE=true;
 const $=s=>document.querySelector(s);
+const tmo=ms=>{if(window.AbortSignal&&AbortSignal.timeout)return AbortSignal.timeout(ms);const c=new AbortController();setTimeout(()=>c.abort(),ms);return c.signal};
 const ld=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch{return d}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
 const valid=h=>/^[A-Za-z0-9_]{1,15}$/.test(h);
@@ -233,27 +240,47 @@ function gen(h,k){
 }
 const demo=new Set(PR); /* practice-mode dummies: generated avatars, no network */
 /* PFP cache: one lookup per handle, stored on the device (128px) so replays need zero requests */
-const PF=ld('fc_pf',{}),inflight={},pk=h=>h.toLowerCase();
+const isImg=v=>typeof v=='string'&&v.startsWith('data:image');
+const PF=Object.fromEntries(Object.entries(ld('fc_pf',{})).filter(([,v])=>isImg(v))),inflight={},pk=h=>h.toLowerCase();
+const savePF=()=>sv('fc_pf',Object.fromEntries(Object.entries(PF).filter(([,v])=>isImg(v))));
 const av=(h,k)=>(h===S.me&&S.pic)?S.pic:(S.prac||demo.has(h))?gen(h,k):(PF[pk(h)]||gen(h,k));
 const toData=b=>new Promise(res=>{const u=URL.createObjectURL(b),i=new Image();
-  i.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=128;const m=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-m)/2,(i.height-m)/2,m,m,0,0,128,128);const d=c.toDataURL('image/jpeg',.85);URL.revokeObjectURL(u);res(d)}catch{res(u)}};
-  i.onerror=()=>res(null);i.src=u});
+  const done=v=>{URL.revokeObjectURL(u);res(v)};
+  i.onload=()=>{try{
+    const w=i.naturalWidth||i.width,h=i.naturalHeight||i.height;if(!w||!h)return done(null);
+    const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#111';x.fillRect(0,0,128,128);
+    const m=Math.min(w,h);x.drawImage(i,(w-m)/2,(h-m)/2,m,m,0,0,128,128);
+    const px=x.getImageData(0,0,128,128).data;let lo=255,hi=0;for(let j=0;j<px.length;j+=64){const l=(px[j]+px[j+1]+px[j+2])/3;if(l<lo)lo=l;if(l>hi)hi=l}
+    if(hi-lo<6)return done(null); /* blank/uniform result (seen on some Android browsers): treat as failed */
+    done(c.toDataURL('image/jpeg',.85))}catch{done(null)}};
+  i.onerror=()=>done(null);i.src=u});
 const probe=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(1);i.onerror=()=>r(0);i.src=u});
 /* resolves {src} or {err:'rate'|'none'|'net'} so the UI can say why it failed */
 function getPfp(h){
   const k=pk(h);if(PF[k])return Promise.resolve({src:PF[k]});
   if(inflight[k])return inflight[k];
   const urls=[`https://unavatar.io/x/${h}?fallback=false`,`https://unavatar.io/twitter/${h}?fallback=false`];
+  const keep=d=>{PF[k]=d;const ks=Object.keys(PF);if(ks.length>60)delete PF[ks[0]];savePF();try{if(!$('#s2').hidden)renderTeam()}catch{}return {src:d}};
   return inflight[k]=(async()=>{
     let err='net';
+    /* 1) our Supabase function: looks the PFP up on the server once, stores it, and serves it to everyone from then on */
+    if(SB_ON){
+      try{
+        const r=await fetch(fnUrl(h),{signal:tmo(20000)});
+        if(r.ok){const d=await toData(await r.blob());if(d)return keep(d)}
+        else if(r.status==404)return {err:'none'};
+        else if(r.status==429)err='rate';
+      }catch(e){}
+    }
+    /* 2) backup: straight from unavatar (free tier is limited per network) */
     for(const u of urls){
       try{
-        const r=await fetch(u,{signal:AbortSignal.timeout(9000)});
+        const r=await fetch(u,{signal:tmo(9000)});
         if(r.status==429){err='rate';break}
         if(r.status==404){err='none';break}
         if(!r.ok)continue;
         const d=await toData(await r.blob());
-        if(d){PF[k]=d;const ks=Object.keys(PF);if(ks.length>30)delete PF[ks[0]];sv('fc_pf',PF);try{if(!$('#s2').hidden)renderTeam()}catch{}return {src:d}}
+        if(d)return keep(d);
       }catch(e){}
     }
     if(err=='net'&&await probe(urls[0])){PF[k]=urls[0];return {src:urls[0]}}
@@ -283,7 +310,7 @@ let lk=0,ft;
 function lookup(now){
   clearTimeout(ft);const v=S.me,st=$('#st'),pv=$('#mepv'),id=++lk;$('#conf').disabled=true;pv.hidden=true;$('#rt').hidden=true;
   const show=src=>{pv.src=src;pv.hidden=false;pv.classList.remove('pop');void pv.offsetWidth;pv.classList.add('pop')};
-  const ok=src=>{show(src);st.className='ok';st.textContent=`Found @${v}. Confirm to pick your team.`;$('#conf').disabled=false};
+  const ok=src=>{pv.onerror=()=>{pv.onerror=null;delete PF[pk(v)];savePF();show(gen(v,0));st.className='err';st.textContent='The picture would not load on this device. Tap Retry, or upload your own photo.';$('#rt').hidden=false;$('#conf').disabled=false};show(src);st.className='ok';st.textContent=`Found @${v}. Confirm to pick your team.`;$('#conf').disabled=false};
   if(!v){st.className='mu';st.textContent='Type your X handle. Your PFP pops up here, then press Enter.';return}
   if(!valid(v)){st.className='err';st.textContent='Letters, digits and underscores only, up to 15 characters.';return}
   if(S.pic){show(S.pic);st.className='mu';st.textContent='Using your uploaded photo.';$('#conf').disabled=false;return}
@@ -301,6 +328,27 @@ $('#me').onkeydown=e=>{if(e.key=='Enter'){if(!$('#conf').disabled)$('#conf').cli
 $('#pic').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);S.pic=c.toDataURL('image/jpeg',.85);if(!valid(S.me)){toast('Enter your handle too.')}lookup()};im.onerror=()=>toast('That file is not a readable image.');im.src=r.result};r.readAsDataURL(f)};
 $('#conf').onclick=()=>{$('#s1').hidden=true;$('#s2').hidden=false;step(2);S.mates.filter(h=>!PF[pk(h)]).forEach(h=>getPfp(h));renderRows();$('#q').focus()};
 $('#back').onclick=()=>{$('#s2').hidden=true;$('#s1').hidden=false;step(1)};
+
+/* ---------- leaderboard (Supabase, shared by everyone; falls back to this device if not configured) ---------- */
+const SB_URL='https://hxrerbrwsdrgtqmzsivu.supabase.co';      /* e.g. https://abcdxyzcompany.supabase.co  (Project Settings → API → Project URL) */
+const SB_KEY='sb_publishable_Y7ocsMBS52l5JxwMTbeLQg_aV1PYK6i';      /* the anon / publishable key. It is safe to ship in the page; RLS limits what it can do. */
+const SB_ON=!!(SB_URL&&SB_KEY);
+const sbA=SB_KEY.startsWith('eyJ')?{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}:{apikey:SB_KEY};
+const sbH={...sbA,'Content-Type':'application/json'};
+/* real X PFPs: each player uploads their own 128px PFP once to a public Supabase Storage bucket; everyone else loads it from there */
+const fnUrl=h=>SB_URL+'/functions/v1/pfp?h='+encodeURIComponent(h);
+const pubPfp=h=>SB_URL+'/storage/v1/object/public/pfps/'+h.toLowerCase()+'.jpg';
+const lbAv=h=>(h===S.me&&S.pic)?S.pic:(PF[pk(h)]||(SB_ON?pubPfp(h):gen(h)));
+async function pushPfp(h){
+  if(!SB_ON)return;
+  const done=ld('fc_pfpup',{}),k=pk(h);if(done[k])return;
+  const src=(h===S.me&&S.pic)||PF[k];if(!src||!src.startsWith('data:image/jpeg'))return;
+  try{
+    const b=await (await fetch(src)).blob();
+    const r=await fetch(SB_URL+'/storage/v1/object/pfps/'+k+'.jpg',{method:'POST',headers:{...sbA,'Content-Type':'image/jpeg','x-upsert':'false'},body:b,signal:tmo(15000)});
+    if(r.ok||r.status==400||r.status==409){done[k]=1;sv('fc_pfpup',done)} /* 400/409 = someone already uploaded this handle's PFP */
+  }catch{}
+}
 
 /* ---------- page 2: search a handle, nominate 5 ---------- */
 let tm,rk=0;
@@ -331,11 +379,30 @@ function renderTeam(){
 }
 /* Suggested teammates: paste handles from fungolabs.org/checker into this list (letters, digits, underscores). */
 const SUGGEST=['0nlyfrank','CryptoNews678','mujeebtium09','Prometheusbey','ddtp112','m1sley_','BubbleBing_666','lhhai3879','0xtusher_','Lohith0001','The_CoDEFi','0xALTF4','helpermc','singkohan','kripto_luci','knknzi0001','0xHecktor','only__violet','Big_Ohms_','0xSpop','0xMerts','eth_apple','zevkmeselesi25','myway10041004','lumingfei666888','lubijiaocheng','pandaBA007','Girlgym67','Like_it_ez','Mani47855000','rui_yi76015','DAXIAGUA1','xinchne_eth','0xmina_','taojukfc','yujuhao','gn_zebraleyuan','KierianV','xptoplayici','cutemoon66','Lijiaoshou12','SungCrypt0','Fairu_90','0xGraphixel','Jexeth017','TuongVi_VN','SharafatTanvir','hunkarbeyiniz','Liyinjyun','kejankrn','annabellex_web3'];
+/* real PFPs for suggestions: shared Supabase copy first, then X (one at a time, polite), then the generated mushroom */
+const sgSrc=h=>PF[pk(h)]||(SB_ON?pubPfp(h):gen(h));
+const sgQ=[],sgSeen=new Set();let sgBusy=false,sgStop=false;
+function setPfp(h,src){document.querySelectorAll('img[data-h]').forEach(i=>{if(i.dataset.h.toLowerCase()==h.toLowerCase())i.src=src})}
+function qPfp(h){
+  if(PF[pk(h)]){setPfp(h,PF[pk(h)]);return}
+  if(sgStop||sgSeen.has(pk(h)))return;sgSeen.add(pk(h));sgQ.push(h);if(!sgBusy)sgRun();
+}
+async function sgRun(){
+  sgBusy=true;
+  while(sgQ.length&&!sgStop){
+    const h=sgQ.shift(),r=await getPfp(h);
+    if(r.src){setPfp(h,r.src);pushPfp(h)}else if(r.err=='rate'){sgStop=true;sgQ.length=0}
+    await new Promise(k=>setTimeout(k,350));
+  }
+  sgBusy=false;
+}
+function sgErr(i){i.onerror=null;const h=i.dataset.h;i.src=gen(h);qPfp(h)}
 function renderSug(){
   const q=$('#q').value.replace(/^@/,'').trim().toLowerCase(),box=$('#sug');
   const L=S.mates.length>=5?[]:[...new Set(SUGGEST.filter(valid))].filter(h=>!taken(h)&&h.toLowerCase().includes(q));
   box.hidden=!L.length;
-  $('#sugl').innerHTML=L.map(h=>`<button class="sg" data-n="${h}"><img alt="" src="${av(h)}">@${h}</button>`).join('');
+  $('#sugl').innerHTML=L.map((h,i)=>`<div class="tr sgr" data-n="${h}" role="button" tabindex="0"><span class="mu">${i+1}</span><span class="ac"><img alt="" loading="lazy" decoding="async" data-h="${h}" src="${sgSrc(h)}" onerror="sgErr(this)"><span><b>@${h}</b></span></span><span class="addb">+ Add</span></div>`).join('');
+  if(!SB_ON)L.slice(0,12).forEach(h=>{if(!PF[pk(h)])qPfp(h)});
 }
 function renderRows(){renderRes();renderTeam();renderSug()}
 $('#q').oninput=e=>{
@@ -343,11 +410,12 @@ $('#q').oninput=e=>{
   if(v&&!/^[A-Za-z0-9_]+$/.test(v)){h.textContent='Only letters, digits and underscores, up to 15 characters.';h.className='err';$('#res').innerHTML='';return}
   h.textContent=HINT;h.className='mu';tm=setTimeout(renderRes,v?900:0);
 };
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.classList&&e.target.classList.contains('sgr')){e.preventDefault();e.target.click()}});
 $('#q').onkeydown=e=>{if(e.key=='Enter'){clearTimeout(tm);renderRes();const b=$('#rb');if(b)b.click()}};
 document.addEventListener('click',e=>{
   const n=e.target.closest('[data-n]'),r=e.target.closest('[data-r]');
   if(r){S.mates=S.mates.filter(x=>x!=r.dataset.r);renderRows()}
-  if(n){if(S.mates.length>=5)return toast('Team is full. Remove a teammate first.');S.mates.push(n.dataset.n);getPfp(n.dataset.n);$('#q').value='';renderRows();if(!n.classList.contains('sg'))$('#q').focus();if(S.mates.length==5)toast('Team complete. Hit Build my cube.')}
+  if(n){if(S.mates.length>=5)return toast('Team is full. Remove a teammate first.');S.mates.push(n.dataset.n);getPfp(n.dataset.n);$('#q').value='';renderRows();if(!n.classList.contains('sgr'))$('#q').focus();if(S.mates.length==5)toast('Team complete. Hit Build my cube.')}
 });
 const link=()=>location.href.split(/[?#]/)[0]+'?t='+[S.me,...S.mates].filter(valid).join(',');
 $('#inv').onclick=async()=>{const l=link();try{await navigator.clipboard.writeText(l);toast('Invite link copied')}catch{toast(l)}};
@@ -540,35 +608,17 @@ document.addEventListener('keydown',e=>{
   if(f>=0&&e.key.length==1&&!e.metaKey&&!e.ctrlKey)qmove(...fa(f,e.shiftKey));
 });
 
-/* ---------- leaderboard (Supabase, shared by everyone; falls back to this device if not configured) ---------- */
-const SB_URL='https://hxrerbrwsdrgtqmzsivu.supabase.co';      /* e.g. https://abcdxyzcompany.supabase.co  (Project Settings → API → Project URL) */
-const SB_KEY='sb_publishable_Y7ocsMBS52l5JxwMTbeLQg_aV1PYK6i';      /* the anon / publishable key. It is safe to ship in the page; RLS limits what it can do. */
-const SB_ON=!!(SB_URL&&SB_KEY);
-const sbA=SB_KEY.startsWith('eyJ')?{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}:{apikey:SB_KEY};
-const sbH={...sbA,'Content-Type':'application/json'};
-/* real X PFPs: each player uploads their own 128px PFP once to a public Supabase Storage bucket; everyone else loads it from there */
-const pubPfp=h=>SB_URL+'/storage/v1/object/public/pfps/'+h.toLowerCase()+'.jpg';
-const lbAv=h=>(h===S.me&&S.pic)?S.pic:(PF[pk(h)]||(SB_ON?pubPfp(h):gen(h)));
-async function pushPfp(h){
-  if(!SB_ON)return;
-  const done=ld('fc_pfpup',{}),k=pk(h);if(done[k])return;
-  const src=(h===S.me&&S.pic)||PF[k];if(!src||!src.startsWith('data:image/jpeg'))return;
-  try{
-    const b=await (await fetch(src)).blob();
-    const r=await fetch(SB_URL+'/storage/v1/object/pfps/'+k+'.jpg',{method:'POST',headers:{...sbA,'Content-Type':'image/jpeg','x-upsert':'false'},body:b,signal:AbortSignal.timeout(15000)});
-    if(r.ok||r.status==400||r.status==409){done[k]=1;sv('fc_pfpup',done)} /* 400/409 = someone already uploaded this handle's PFP */
-  }catch{}
-}
+/* ---------- leaderboard ---------- */
 const REMOTE={day:null,week:null,all:null};
 const sinceOf=f=>f=='day'?new Date().setHours(0,0,0,0):f=='week'?Date.now()-6048e5:0;
 async function pushRun(h,t){
   if(!SB_ON)return false;
-  try{const r=await fetch(SB_URL+'/rest/v1/fc_runs',{method:'POST',headers:{...sbH,Prefer:'return=minimal'},body:JSON.stringify({handle:h,t_ms:Math.round(t)}),signal:AbortSignal.timeout(10000)});return r.ok}catch{return false}
+  try{const r=await fetch(SB_URL+'/rest/v1/fc_runs',{method:'POST',headers:{...sbH,Prefer:'return=minimal'},body:JSON.stringify({handle:h,t_ms:Math.round(t)}),signal:tmo(10000)});return r.ok}catch{return false}
 }
 async function pullBoard(f){
   if(!SB_ON)return;
   try{
-    const r=await fetch(SB_URL+'/rest/v1/rpc/fc_leaderboard',{method:'POST',headers:sbH,body:JSON.stringify({since:new Date(sinceOf(f)).toISOString()}),signal:AbortSignal.timeout(10000)});
+    const r=await fetch(SB_URL+'/rest/v1/rpc/fc_leaderboard',{method:'POST',headers:sbH,body:JSON.stringify({since:new Date(sinceOf(f)).toISOString()}),signal:tmo(10000)});
     if(!r.ok)return;
     REMOTE[f]=(await r.json()).filter(o=>valid(o.handle)).map(o=>({h:o.handle,t:o.best_ms,n:+o.solves,d:Date.parse(o.last_at)}));
   }catch{}
@@ -584,12 +634,21 @@ function board(f=flt){
 function renderLB0(){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f==flt));
   const b=board();
-  $('#lbl').innerHTML=b.length?b.map((o,i)=>`<div class="lbr${o.h==S.me?' me':''}"><span>${i+1}</span><img src="${lbAv(o.h)}" alt="" onerror="this.onerror=null;this.src=gen(this.dataset.h)" data-h="${o.h}"><span class="nm">@${o.h}<br><small class="mu">${new Date(o.d).toLocaleDateString()}</small></span><b>${fmt(o.t)}</b><span>${o.n}</span></div>`).join(''):'<p class="mu">No solves yet for this range. Be the first on the board.</p>';
+  $('#lbl').innerHTML=b.length?b.map((o,i)=>`<div class="lbr${o.h==S.me?' me':''}"><span>${i+1}</span><img src="${lbAv(o.h)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=gen(this.dataset.h)" data-h="${o.h}"><span class="nm">@${o.h}<br><small class="mu">${new Date(o.d).toLocaleDateString()}</small></span><b>${fmt(o.t)}</b><span>${o.n}</span></div>`).join(''):'<p class="mu">No solves yet for this range. Be the first on the board.</p>';
 }
 function renderLB(){renderLB0();const c=$('#lbl'),d=$('#lbl2');d.innerHTML=c.innerHTML;[...d.querySelectorAll('.lbr')].slice(10).forEach(x=>x.remove())}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{flt=b.dataset.f;renderLB();pullBoard(flt).then(renderLB)});
 const openLB=()=>{$('#win').hidden=true;renderLB();$('#lb').hidden=false;pullAll()};
 $('#lbBtn').onclick=openLB;$('#wlb').onclick=openLB;$('#lbX').onclick=()=>$('#lb').hidden=true;
+if(SB_ON&&new URLSearchParams(location.search).has('warm')){(async()=>{
+  const L=[...new Set(SUGGEST.filter(valid))],tot={};let n=0;
+  for(let i=0;i<L.length;i+=20){
+    toast(`Warming PFPs ${Math.min(i+20,L.length)}/${L.length}…`);
+    try{const r=await fetch(SB_URL+'/functions/v1/pfp?warm='+L.slice(i,i+20).join(','),{signal:tmo(120000)});Object.assign(tot,await r.json())}catch(e){L.slice(i,i+20).forEach(h=>tot[h]='net')}
+  }
+  const c={};Object.values(tot).forEach(v=>c[v]=(c[v]||0)+1);console.table(tot);
+  toast('PFP warm-up done: '+Object.entries(c).map(([k,v])=>v+' '+k).join(', '));
+})()}
 if(SB_ON){pullAll();setInterval(()=>{if(!document.hidden)pullAll()},30000)}
 </script>
 </body>
