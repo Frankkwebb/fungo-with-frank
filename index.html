@@ -17,7 +17,8 @@ header{display:flex;justify-content:space-between;align-items:center;padding:.8r
 .logo i{width:30px;height:30px;border-radius:9px;background:var(--y);display:grid;grid:1fr 1fr/1fr 1fr;gap:4px;padding:6px}
 .logo i::before,.logo i::after{content:"";background:#111;border-radius:3px;box-shadow:0 11px 0 #111}
 .logo i::before{grid-area:1/1}.logo i::after{grid-area:1/2;box-shadow:0 11px 0 #111}
-nav{display:flex;gap:.5rem}
+nav{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
+#trk{color:var(--y);border-color:#6a5600}
 main{max-width:920px;margin:0 auto;padding:0 1rem 3rem}
 #s1,#play{max-width:640px;margin:0 auto}
 button{font:inherit;touch-action:manipulation;color:var(--tx);background:var(--pn);border:1px solid var(--ln);border-radius:999px;padding:.55em 1.1em;cursor:pointer}
@@ -159,7 +160,7 @@ h1{font-size:1.8rem}
 <body>
 <header>
   <div class="logo"><i></i>Fungo Cube</div>
-  <nav><button id="snd" aria-pressed="false">Sound off</button><button id="lbBtn">Leaderboard</button></nav>
+  <nav><button id="mus" title="Play or pause music">♪ Music</button><button id="trk" title="Next track"></button><button id="snd" aria-pressed="false">Sound off</button><button id="lbBtn">Leaderboard</button></nav>
 </header>
 <div id="tip" hidden><span>Add 5 friends → scramble → solve as fast as you can!</span><button id="tipX" aria-label="Dismiss tip">✕</button></div>
 <main>
@@ -185,11 +186,11 @@ h1{font-size:1.8rem}
 
 <section id="play" hidden>
   <div class="hud"><div><span id="time">00:00.00</span><small id="stat">Ready · hit Scramble to start the clock</small></div><div><span id="mv" class="big-t" style="font-size:2rem">0</span><br><small>moves</small></div><div><span id="best" class="big-t" style="font-size:2rem">—</span><br><small>your best</small></div></div>
-  <p class="mu" id="pm" hidden style="text-align:center;margin:.4rem 0 0">Practice mode: dummy PFPs, runs are not ranked.</p>
-  <p id="how" class="mu">Drag a tile to turn its row, let go to snap. Drag the background or use two fingers to look around. Double-tap the background to reset the view.</p>
+  <p class="mu" id="pm" hidden style="text-align:center;margin:.4rem 0 0">Practice mode: classic Rubik's cube colors, runs are not ranked.</p>
+  <p id="how" class="mu">Drag any tile to turn its row or column (middle slices too), let go to snap. Drag the background or use two fingers to look around. Double-tap the background to reset the view.</p>
   <div id="sw" aria-label="3D cube. Drag to rotate the view."><div id="sc"><div id="view"><div id="cube"></div></div></div></div><div id="coach" hidden>👆 Drag a tile to turn it</div>
   <p id="goal" class="mu" style="text-align:center;margin:.2rem 0 .3rem;font-size:.8em">Goal: every face shows one person</p>  <div class="ctl">
-    <p class="mu kb" style="font-size:.8em;text-align:center;margin:0">Keys: arrows look · F R B L U D turn a face · Shift reverses</p>
+    <p class="mu kb" style="font-size:.8em;text-align:center;margin:0">Keys: arrows look · F R B L U D M E S turn a slice · Shift reverses</p>
     <div class="acts" style="margin:0"><button data-v="x">Reset view</button><button id="edit">Edit team</button><button id="scr" class="pri">Scramble</button></div>
   </div>
   <section id="lbs"><h2>Leaderboard</h2>
@@ -260,19 +261,8 @@ function getPfp(h){
   const k=pk(h);if(PF[k])return Promise.resolve({src:PF[k]});
   if(inflight[k])return inflight[k];
   const urls=[`https://unavatar.io/x/${h}?fallback=false`,`https://unavatar.io/twitter/${h}?fallback=false`];
-  const keep=d=>{PF[k]=d;const ks=Object.keys(PF);if(ks.length>60)delete PF[ks[0]];savePF();try{if(!$('#s2').hidden)renderTeam()}catch{}return {src:d}};
   return inflight[k]=(async()=>{
     let err='net';
-    /* 1) our Supabase function: looks the PFP up on the server once, stores it, and serves it to everyone from then on */
-    if(SB_ON){
-      try{
-        const r=await fetch(fnUrl(h),{signal:tmo(20000)});
-        if(r.ok){const d=await toData(await r.blob());if(d)return keep(d)}
-        else if(r.status==404)return {err:'none'};
-        else if(r.status==429)err='rate';
-      }catch(e){}
-    }
-    /* 2) backup: straight from unavatar (free tier is limited per network) */
     for(const u of urls){
       try{
         const r=await fetch(u,{signal:tmo(9000)});
@@ -280,7 +270,7 @@ function getPfp(h){
         if(r.status==404){err='none';break}
         if(!r.ok)continue;
         const d=await toData(await r.blob());
-        if(d)return keep(d);
+        if(d){PF[k]=d;const ks=Object.keys(PF);if(ks.length>60)delete PF[ks[0]];savePF();try{if(!$('#s2').hidden)renderTeam()}catch{}return {src:d}}
       }catch(e){}
     }
     if(err=='net'&&await probe(urls[0])){PF[k]=urls[0];return {src:urls[0]}}
@@ -292,10 +282,69 @@ function img(h,k){const i=new Image();i.draggable=false;i.alt='@'+h;i.src=av(h,k
 
 /* ---------- toast / sound / confetti ---------- */
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2600)}
-let AC,on=ld('fc_snd',false);
-function snd(k){if(!on)return;try{AC=AC||new AudioContext();(k=='win'?[523,659,784,1047]:[320]).forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+i*.11;o.type=k=='win'?'triangle':'square';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(k=='win'?.15:.04,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+(k=='win'?.35:.07));o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.4)})}catch{}}
+let AC,on=ld('fc_snd',true),nb=null,mus=null;
+function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch{}return AC}
+function noise(){if(nb)return nb;nb=AC.createBuffer(1,(AC.sampleRate*.1)|0,AC.sampleRate);const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return nb}
+function snd(k){
+  if(!on||!ac())return;
+  try{
+    const t=AC.currentTime;
+    if(k=='move'){
+      const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+      s.buffer=noise();f.type='bandpass';f.frequency.value=1400+Math.random()*900;f.Q.value=1.2;
+      g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);
+      s.connect(f);f.connect(g);g.connect(AC.destination);s.start(t);s.stop(t+.1);
+      const o=AC.createOscillator(),h=AC.createGain();o.type='triangle';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(90,t+.1);
+      h.gain.setValueAtTime(.22,t);h.gain.exponentialRampToValueAtTime(.001,t+.12);o.connect(h);h.connect(AC.destination);o.start(t);o.stop(t+.14);
+      return}
+    (k=='win'?[523,659,784,1047]:[320]).forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain(),u=t+i*.11;o.type=k=='win'?'triangle':'square';o.frequency.value=f;g.gain.setValueAtTime(.0001,u);g.gain.exponentialRampToValueAtTime(k=='win'?.15:.04,u+.01);g.gain.exponentialRampToValueAtTime(.0001,u+(k=='win'?.35:.07));o.connect(g);g.connect(AC.destination);o.start(u);o.stop(u+.4)});
+  }catch{}
+}
+/* background music: 4 generated tracks, no audio files. Auto-plays while solving; the Music button plays it anytime. */
+const mf=m=>440*Math.pow(2,(m-69)/12);
+/* sp = seconds per step (8 steps per chord) · bs/bl/bv/bw = bass step, length, volume, wave · ap/ao/aw/av = arp pattern, octave, wave, volume · ks/kv kick · hv hat · pd pad · m master */
+const TR=[
+ {n:'Mushroom Groove',sp:.2,ch:[[45,0,3,7],[41,0,4,7],[48,0,4,7],[43,0,4,7]],bs:2,bl:1.8,bv:.55,bw:'triangle',ap:[1,2,3,2,1,2,3,2],ao:24,aw:'square',av:.1,ks:4,kv:.7,hv:.12,pd:0,m:.1},
+ {n:'Golden Hour',sp:.34,ch:[[41,0,4,7,11],[40,0,3,7,10],[38,0,3,7,10],[43,0,4,7,10]],bs:4,bl:3,bv:.5,bw:'triangle',ap:[1,3,2,4,2,3,4,3],ao:24,aw:'sine',av:.22,ks:4,kv:.45,hv:.05,pd:.1,m:.12},
+ {n:'Spore Rush',sp:.13,ch:[[40,0,3,7],[36,0,4,7],[38,0,4,7],[35,0,4,7]],bs:1,bl:.8,bv:.3,bw:'square',ap:[1,2,3,2,3,2,1,2],ao:24,aw:'sawtooth',av:.05,ks:2,kv:.7,hv:.1,pd:0,m:.09},
+ {n:'Midnight Gills',sp:.27,ch:[[38,0,3,7],[34,0,4,7],[43,0,3,7],[33,0,4,7]],bs:8,bl:7,bv:.6,bw:'sine',ap:[1,3,2,3,1,3,2,3],ao:24,aw:'triangle',av:.16,ks:8,kv:.5,hv:0,pd:.12,m:.12}
+];
+let trk=Math.min(Math.max((+ld('fc_trk',0))|0,0),TR.length-1),manual=false;
+function note(type,fr,t,d,v,dst,fr2){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(fr,t);if(fr2)o.frequency.exponentialRampToValueAtTime(fr2,t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dst);o.start(t);o.stop(t+d+.02)}
+function trkUI(){$('#trk').textContent=TR[trk].n;$('#mus').textContent=mus?'❚❚ Pause':'♪ Music'}
+function musicStart(){
+  if(!on||mus||!ac())return;
+  const T=TR[trk],mg=AC.createGain();mg.gain.setValueAtTime(.0001,AC.currentTime);mg.gain.exponentialRampToValueAtTime(T.m,AC.currentTime+1.2);mg.connect(AC.destination);
+  const M={mg,step:0,next:AC.currentTime+.1,id:0};
+  const sched=()=>{
+    while(M.next<AC.currentTime+.5){
+      const i=M.step,c=T.ch[(i>>3)%T.ch.length],t=M.next,s=i%8,r=c[0];
+      if(s%T.bs==0)note(T.bw,mf(r),t,T.sp*T.bl,T.bv,mg);
+      if(T.av)note(T.aw,mf(r+T.ao+c[T.ap[s]]),t,T.sp*.9,T.av,mg);
+      if(T.ks&&s%T.ks==0)note('sine',130,t,.14,T.kv,mg,45);
+      if(T.hv&&s%2==1){const n=AC.createBufferSource(),h=AC.createBiquadFilter(),g=AC.createGain();n.buffer=noise();h.type='highpass';h.frequency.value=6000;g.gain.setValueAtTime(T.hv,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);n.connect(h);h.connect(g);g.connect(mg);n.start(t);n.stop(t+.06)}
+      if(T.pd&&s==0)c.slice(1).forEach(x=>note('sine',mf(r+12+x),t,T.sp*8,T.pd,mg));
+      M.next+=T.sp;M.step++;
+    }
+  };
+  sched();M.id=setInterval(sched,120);mus=M;trkUI();
+}
+function musicStop(){
+  if(!mus){trkUI();return}const M=mus;mus=null;clearInterval(M.id);trkUI();
+  try{const t=AC.currentTime;M.mg.gain.cancelScheduledValues(t);M.mg.gain.setValueAtTime(Math.max(M.mg.gain.value,.0001),t);M.mg.gain.exponentialRampToValueAtTime(.0001,t+.4);setTimeout(()=>{try{M.mg.disconnect()}catch{}},700)}catch{}
+}
+const autoStop=()=>{if(!manual)musicStop()};
+$('#mus').onclick=()=>{
+  if(mus){manual=false;musicStop();return}
+  manual=true;if(!on){on=true;sv('fc_snd',true);sndUI()}ac();musicStart();toast('Now playing: '+TR[trk].n);
+};
+$('#trk').onclick=()=>{
+  trk=(trk+1)%TR.length;sv('fc_trk',trk);const was=!!mus;
+  if(was){musicStop();musicStart()}trkUI();toast((was?'Now playing: ':'Track: ')+TR[trk].n);
+};
+document.addEventListener('visibilitychange',()=>{if(!AC)return;try{document.hidden?AC.suspend():AC.resume()}catch{}});
 function sndUI(){const b=$('#snd');b.textContent=on?'Sound on':'Sound off';b.setAttribute('aria-pressed',on)}
-$('#snd').onclick=()=>{on=!on;sv('fc_snd',on);sndUI();snd('click')};sndUI();
+$('#snd').onclick=()=>{on=!on;sv('fc_snd',on);sndUI();if(on){ac();snd('click');if(state=='run')musicStart()}else{manual=false;musicStop()}};sndUI();trkUI();
 function boom(){
   if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   const c=$('#cf'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
@@ -336,7 +385,6 @@ const SB_ON=!!(SB_URL&&SB_KEY);
 const sbA=SB_KEY.startsWith('eyJ')?{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}:{apikey:SB_KEY};
 const sbH={...sbA,'Content-Type':'application/json'};
 /* real X PFPs: each player uploads their own 128px PFP once to a public Supabase Storage bucket; everyone else loads it from there */
-const fnUrl=h=>SB_URL+'/functions/v1/pfp?h='+encodeURIComponent(h);
 const pubPfp=h=>SB_URL+'/storage/v1/object/public/pfps/'+h.toLowerCase()+'.jpg';
 const lbAv=h=>(h===S.me&&S.pic)?S.pic:(PF[pk(h)]||(SB_ON?pubPfp(h):gen(h)));
 async function pushPfp(h){
@@ -430,6 +478,7 @@ if(!S.me&&!matchMedia('(pointer:coarse)').matches)$('#me').focus();
 /* CSS axes: x right, y down, z toward viewer. Face index = person index: F R B L U D */
 const FACES=[[0,0,1],[1,0,0],[0,0,-1],[-1,0,0],[0,-1,0],[0,1,0]];
 const FT=['','rotateY(90deg)','rotateY(180deg)','rotateY(-90deg)','rotateX(90deg)','rotateX(-90deg)'];
+const CL=['#009b48','#b71234','#0046ad','#ff5800','#ffffff','#ffd500'];
 const NAMES=['Front','Right','Back','Left','Top','Bottom'];
 let cubies=[],busy=false,state='ready',moves=0,run=false,T0=0,sel=0,rx=-24,ry=30;
 const mv=(M,v)=>M.map(r=>r[0]*v[0]+r[1]*v[1]+r[2]*v[2]);
@@ -443,7 +492,7 @@ function mk(){
     const c={p:[x,y,z],R:[[1,0,0],[0,1,0],[0,0,1]],el,st:[]};
     FACES.forEach((n,i)=>{
       const f=document.createElement('div');f.className='fc';f.style.transform=FT[i]+' translateZ(49px)';
-      if(x*n[0]+y*n[1]+z*n[2]==1){const s=document.createElement('div');s.className='st';s.appendChild(img(S.people[i],i));f.appendChild(s);const o={n,who:i,el:s};c.st.push(o);f._k=[c,o]}
+      if(x*n[0]+y*n[1]+z*n[2]==1){const s=document.createElement('div');s.className='st';if(S.prac)s.style.background=CL[i];else s.appendChild(img(S.people[i],i));f.appendChild(s);const o={n,who:i,el:s};c.st.push(o);f._k=[c,o]}
       el.appendChild(f);
     });
     el.style.transform=mat(c);C.appendChild(el);cubies.push(c);
@@ -457,6 +506,7 @@ function spin(set,ax,f,t,ms){
       if(k<1)requestAnimationFrame(g);else res()})(t0)});
 }
 async function turn(a,l,s,ms,from=0){
+  snd('move');
   const set=cubies.filter(c=>c.p[a]==l);await spin(set,'XYZ'[a],from,s*90,ms);
   const Rm=rot(a,s);set.forEach(c=>{c.p=mv(Rm,c.p);c.R=mm(Rm,c.R);c.el.style.transform=mat(c)});
 }
@@ -488,7 +538,7 @@ function swipe(c,stk,sx,sy2){
       if(dot>bs){bs=dot;best=[u,r]}
     }
   }
-  if(!best||p[best[0]]==0)return null;
+  if(!best)return null;
   return [best[0],p[best[0]],best[1]];
 }
 const ptrs=new Map();let lay=null,p0=null,lastTap=0;
@@ -502,7 +552,7 @@ function dragLay(e){
 }
 async function release(){
   if(!lay)return;const L=lay;lay=null;
-  if(Math.abs(L.th)>=30){snd('click');if(navigator.vibrate)navigator.vibrate(8);await turn(L.a,L.l,L.th>0?1:-1,130,L.th);after()}
+  if(Math.abs(L.th)>=30){if(navigator.vibrate)navigator.vibrate(8);await turn(L.a,L.l,L.th>0?1:-1,130,L.th);after()}
   else{await spin(L.set,L.ax,L.th,0,110);L.set.forEach(c=>c.el.style.transform=mat(c));busy=false}
 }
 sw.onpointerdown=e=>{
@@ -554,19 +604,19 @@ async function start(p){
   S.people=p?[S.me,...PR]:[S.me,...S.mates];
   const w=Object.values(inflight);if(w.length){toast('Loading PFPs…');await Promise.race([Promise.all(w),new Promise(r=>setTimeout(r,6000))])}
   $('#s1').hidden=true;$('#s2').hidden=true;$('#play').hidden=false;$('#pm').hidden=!p;step(3);
-  run=false;state='ready';setM(0);$('#time').textContent='00:00.00';$('#stat').textContent='Ready · hit Scramble to start the clock';
+  autoStop();run=false;state='ready';setM(0);$('#time').textContent='00:00.00';$('#stat').textContent='Ready · hit Scramble to start the clock';
   $('#scr').textContent='Scramble';$('#scr').classList.add('pulse');$('#coach').hidden=!!ld('fc_coach',0);
   showBest();renderLB();fit();mk();setV(false);
 }
 $('#go').onclick=()=>start(false);$('#prac').onclick=()=>start(true);
-$('#edit').onclick=()=>{run=false;$('#play').hidden=true;$('#s2').hidden=false;step(2);renderRows()};
+$('#edit').onclick=()=>{autoStop();run=false;$('#play').hidden=true;$('#s2').hidden=false;step(2);renderRows()};
 async function scramble(){
-  if(busy)return;mq.length=0;$('#win').hidden=true;mk();setV(false);run=false;state='scr';setM(0);$('#time').textContent='00:00.00';$('#stat').textContent='Scrambling…';$('#scr').classList.remove('pulse');
+  if(busy)return;ac();autoStop();mq.length=0;$('#win').hidden=true;mk();setV(false);run=false;state='scr';setM(0);$('#time').textContent='00:00.00';$('#stat').textContent='Scrambling…';$('#scr').classList.remove('pulse');
   busy=true;$('#scr').disabled=true;
   const n=4+(Math.random()*3|0);let last=-1;
   for(let i=0;i<n||solved();i++){let f;do f=Math.random()*6|0;while(f==last);last=f;await turn(...fa(f,Math.random()<.5),140)}
   busy=false;$('#scr').disabled=false;$('#scr').textContent='Re-scramble';upd();
-  state='run';$('#stat').textContent='Go! Solve it';T0=performance.now();run=true;tick();
+  state='run';$('#stat').textContent='Go! Solve it';T0=performance.now();run=true;tick();musicStart();
 }
 $('#scr').onclick=scramble;$('#again').onclick=scramble;
 const mq=[];let pumping=false;
@@ -574,11 +624,11 @@ function qmove(a,l,s){if(state=='scr'||lay)return;mq.push([a,l,s]);pump()}
 function after(){busy=false;upd();if(!$('#coach').hidden){$('#coach').hidden=true;sv('fc_coach',1)}if(state=='run'){setM(moves+1);if(solved()){mq.length=0;win()}}}
 async function pump(){
   if(pumping)return;pumping=true;
-  while(mq.length&&state!='scr'){const [a,l,s]=mq.shift();busy=true;snd('click');if(navigator.vibrate)navigator.vibrate(8);await turn(a,l,s,mq.length?110:170);after()}
+  while(mq.length&&state!='scr'){const [a,l,s]=mq.shift();busy=true;if(navigator.vibrate)navigator.vibrate(8);await turn(a,l,s,mq.length?110:170);after()}
   pumping=false;
 }
 function win(){
-  run=false;state='won';const t=performance.now()-T0;$('#time').textContent=fmt(t);$('#stat').textContent='Solved!';
+  run=false;state='won';autoStop();const t=performance.now()-T0;$('#time').textContent=fmt(t);$('#stat').textContent='Solved!';
   let msg='Practice run. Add a team and play for the leaderboard.';
   if(!S.prac){
     const prev=bestMs(),runs=ld('fc_runs',[]);runs.push({h:S.me,t:Math.round(t),d:Date.now()});sv('fc_runs',runs);
@@ -604,6 +654,7 @@ document.addEventListener('keydown',e=>{
   if($('#play').hidden)return;
   const d={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'}[e.key];
   if(d){e.preventDefault();look(d)}
+  const sl='MES'.indexOf(e.key.toUpperCase());if(sl>=0&&e.key.length==1&&!e.metaKey&&!e.ctrlKey)qmove(sl==0?0:sl==1?1:2,0,e.shiftKey?-1:1);
   const f='FRBLUD'.indexOf(e.key.toUpperCase());
   if(f>=0&&e.key.length==1&&!e.metaKey&&!e.ctrlKey)qmove(...fa(f,e.shiftKey));
 });
@@ -634,21 +685,12 @@ function board(f=flt){
 function renderLB0(){
   document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f==flt));
   const b=board();
-  $('#lbl').innerHTML=b.length?b.map((o,i)=>`<div class="lbr${o.h==S.me?' me':''}"><span>${i+1}</span><img src="${lbAv(o.h)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=gen(this.dataset.h)" data-h="${o.h}"><span class="nm">@${o.h}<br><small class="mu">${new Date(o.d).toLocaleDateString()}</small></span><b>${fmt(o.t)}</b><span>${o.n}</span></div>`).join(''):'<p class="mu">No solves yet for this range. Be the first on the board.</p>';
+  $('#lbl').innerHTML=b.length?b.map((o,i)=>`<div class="lbr${o.h==S.me?' me':''}"><span>${i+1}</span><img src="${lbAv(o.h)}" alt="" onerror="this.onerror=null;this.src=gen(this.dataset.h)" data-h="${o.h}"><span class="nm">@${o.h}<br><small class="mu">${new Date(o.d).toLocaleDateString()}</small></span><b>${fmt(o.t)}</b><span>${o.n}</span></div>`).join(''):'<p class="mu">No solves yet for this range. Be the first on the board.</p>';
 }
 function renderLB(){renderLB0();const c=$('#lbl'),d=$('#lbl2');d.innerHTML=c.innerHTML;[...d.querySelectorAll('.lbr')].slice(10).forEach(x=>x.remove())}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{flt=b.dataset.f;renderLB();pullBoard(flt).then(renderLB)});
 const openLB=()=>{$('#win').hidden=true;renderLB();$('#lb').hidden=false;pullAll()};
 $('#lbBtn').onclick=openLB;$('#wlb').onclick=openLB;$('#lbX').onclick=()=>$('#lb').hidden=true;
-if(SB_ON&&new URLSearchParams(location.search).has('warm')){(async()=>{
-  const L=[...new Set(SUGGEST.filter(valid))],tot={};let n=0;
-  for(let i=0;i<L.length;i+=20){
-    toast(`Warming PFPs ${Math.min(i+20,L.length)}/${L.length}…`);
-    try{const r=await fetch(SB_URL+'/functions/v1/pfp?warm='+L.slice(i,i+20).join(','),{signal:tmo(120000)});Object.assign(tot,await r.json())}catch(e){L.slice(i,i+20).forEach(h=>tot[h]='net')}
-  }
-  const c={};Object.values(tot).forEach(v=>c[v]=(c[v]||0)+1);console.table(tot);
-  toast('PFP warm-up done: '+Object.entries(c).map(([k,v])=>v+' '+k).join(', '));
-})()}
 if(SB_ON){pullAll();setInterval(()=>{if(!document.hidden)pullAll()},30000)}
 </script>
 </body>
